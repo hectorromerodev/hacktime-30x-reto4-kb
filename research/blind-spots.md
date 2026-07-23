@@ -6,7 +6,7 @@ Updated 2026-07-22 after analyzing the apertura + explicación-reto-4 lives. Sou
 
 **The problem (official brief + live):**
 - Monthly blind count, bodega by bodega, by grupos de familia; paper → líder de costos types it (~**2 days of digitación per cycle**) → auditor reviews. Errors: 9↔90, handwriting (3↔5), g vs kg.
-- Pilot scope = **Piscilago park only** (~48 bodegas, ~1,400+ artículos each); hotels are the future rollout if it works.
+- Pilot scope = **Piscilago park only** (~48 bodegas); hotels are the future rollout if it works. **Correction from the dataset (2026-07-23):** the live's "1,400+ artículos" is the whole dataset (1,405 stock rows across the 8 bodegas with sheets; 936 distinct articles; 56–344 rows per bodega) — NOT 1,400 per bodega. See `datos/BODEGAS-Y-STOCK-perfil.md`.
 - Catalog is heterogeneous: food + pool chemicals + animal supplies + meds + frozen + menaje. Homologated names (20 rice suppliers → "arroz") but real variants stay separate ("arroz doña pepa").
 - Backing system: **Oracle Simphony / "My Inventory"** (?) — it generates the per-bodega count format (product + unit). Confirm exact name in WhatsApp group.
 - Partial counts allowed (open packages weighed); prepared portions are their own catalog article. Recipe tracking explicitly **out of scope**.

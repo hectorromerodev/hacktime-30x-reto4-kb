@@ -18,4 +18,5 @@ Rule for humans and AIs: **read the `-perfil.md`, only open the raw file when yo
 
 | File | From | Profile |
 |---|---|---|
-| *(pending — drop the organizers' xlsx here)* | | |
+| `BODEGAS Y STOCK.xlsx` | Organizers (Google Sheets link, downloaded 2026-07-23) | `BODEGAS-Y-STOCK-perfil.md` |
+| `BODEGAS-Y-STOCK-notas-oficiales.md` | Organizers' usage notes (verbatim) | — |
