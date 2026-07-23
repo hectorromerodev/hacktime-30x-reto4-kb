@@ -1,0 +1,722 @@
+Hola a todos bienvenidos que gusto tenerlos aquí conectados en esta charla y bueno antes
+de comenzar en un rápido recordatorio es que pueden dejar sus preguntas en el chat y las
+iremos respondiendo al final de la sesión y sin más les quiero presentar a nuestro
+invitado de hoy Brian Castillo CEO y founder de Taya en los últimos 12 años a lidera
+de equipos de tecnología y ha cerrado tratos de con empresas B2B así que sabe
+muy bien cómo llevar la tecnología al impacto real hoy especialmente nos va a
+acompañar con una charla de cómo utilizar Yamini Live Appin para crear
+proyectos de alto impacto donde repasaremos los conceptos básicos de ella
+conversación y el paso a paso y que veremos cómo construir una gente
+entonces Brian muchas gracias por acompañarnos y salvo la palabra para que
+empecemos con esta grande esa charla
+hola go a muchas gracias gracias por la presentación bueno
+estoy aquí para hablarles de Yamini si bien hay muchas muchas formas de hacer
+una gente hoy 22 de julio del 2016 quiero repasar un par de conceptos claves
+enseñarles cómo se puede hacer esto de manera rápida y qué es lo que tiene Google
+para ofrecer
+entonces empezamos así cualquier cosa me encanta demasiado
+como que crear esta sesión de una conversación así que decidió en
+alguna pregunta de general chat yo estoy leyendo lo está leyendo aquí y
+más más más bueno empezamos entonces ahí vamos vamos yendo como nos
+está bien para romper esto estas estos días de estrés que van a que van a
+tener bien ya me presentaron mi nombre en castillo se parte del programa de
+Google para expert tengo ahorita una startup que esté ahí
+es una gente de voz que es capaz de dirigir entrevistas de hecho mucho lo
+que hacemos nosotros también se basa en se basa en esa investigación que les
+quiero mostrar y antes de esto estuve como como gente de tecnología en un
+portfolio capital de un canal de youtube donde si bien subo videos no es al
+año pero les prometo que son videos bien interesantes sobre sobre flutter sobre
+firebase entonces estoy como mentor también durante durante estos días
+si bien estoy en Perú no puede estar presencial pero digo mentor entonces
+mi background no solo es tecnológico sino también es de negocios también de
+vídeo y cómo hacer producto incluso de marketing así que cualquier duda
+cualquier cosa háganle saber estoy en el grupo de whatsapp también así que
+ahí solo pregunten entonces vamos con el elefante de la habitación vamos a
+ver qué es lo que tiene yemina y para nosotros
+bien yemina yemina y es esta está rama de inteligencia artificial este
+producto que se ha sacado que ha sacado google y dentro de toda la suerte que
+tiene tiene una cosa que oficialmente se lanzó en diciembre del año pasado
+siempre lo murió en cinco y que ha tenido poco poco revuelo poco
+a pesar de que ingresó primero en la semana pasada
+opena ya y sacó su chai titi en vivo no está para poder conversar con chai titi
+bueno esto esto ya tenía unos meses no me sentí así que vamos a ver cómo lo
+vamos a usar entonces primero vamos a ver sobre esta IPA porque existe porque
+porque la tenemos acá porque es importante prestar atención en esto porque
+porque las las IPA y el tiempo real nos generan dos cosas muy importantes
+experiencias nativas y UX sin fricción qué quiere decir con experiencias nativas
+esto de acá esta IPA como la yemina como lo que sacó la semana pasada
+apenas ahí no es tan solo que puede la idea conversar contigo es mucho más
+de razonamiento razonamiento en voz cosa que hace que las cosas sean mucho
+más rápidas que el incluso tiene ese tema de los tonos a los modismos de la
+emoción hace que las personas con los que los que están interactuando con su
+producto se sientan que que de verdad están teniendo a alguien a su lado
+ahora con ese tema de UX sin fricción es una interesante de lo que decía sobre
+el tema del procesamiento de audio es que al procesar audio y al
+responder a mi audio el modelo está haciendo que ya no pase por muchos filtros
+más por ejemplo a ver lo que hoy con esto es cuando nosotros queríamos hacer un
+sistema como este lo que teníamos es esperar a que el usuario termine de
+hablar tener un de cierta manera un motorcito ahí que me diga cuándo el
+usuario terminó a hablar coger todo ese audio transformarlo en texto de texto
+enviarlo al modelo del modelo que te va a responder texto convertirla a audio y
+después volver a enviárselo hacer todo eso toma tiempo este modelo es capaz de
+procesar audio y quiere decir que no vamos a hacer todos estos pasos extras eso lo
+llamamos porque es importante esto acá estos 10 minutos son un poco
+horrible porque es importante hacer acá porque el impacto en el usuario es mucho
+menor por allá en el 2010 este tema de que de que las webs tienen que cantar en
+dos segundos se unir un estando ahora todas las webs cargan rápido de hecho si
+algo no carga rápido ya no es no es bueno entonces pasa lo mismo y con
+inteligencia artificial hoy en nuestros usuarios están acostumbrados a que
+todo le cambia el tiempo real entonces todo lo que hacemos nosotros si o si tiene que
+pasar de manera rápida eso es un gran problema
+no sé si es un problema de oportunidad entonces esta gráfica demuestra que nosotros
+vamos a tener más oportunidades pero más fluida va a ser bien cuáles son los
+casos de uso son varios de hecho por ejemplo hoy están teniendo hoy tienen
+cuatro dimensiones no donde está el problema
+en la botelería creo que tiene tienen seguridad me parece a ver a ver aquí
+y en la botelería viviendo seguros y crédito entonces acá hay un gran
+oportunidad para crear asistente para lo que ustedes están queriendo hacer
+si bien hay muchas formas de ver esto dentro del gaming pero también hay
+otros espacios no ahora vamos a ver cuáles son las dos cosas que vamos a
+necesitar nuestro recetario son estos dos cosas que están en estos dos
+fuertes de aquí déjenme abrirlos acá para darles una un tour por la
+documentación y por lo que ustedes pueden encontrar
+muy bien entonces lo primero que tenemos aquí es la anuncio la overview es todo
+acá
+bueno lo primero que tenemos aquí es la documentación qué es lo que podemos
+explorar en esta documentación en esta documentación podemos ver a grandes
+rasgos técnicos cómo se comporta cuáles son los métodos que tenemos que hacer qué
+variables que variables entran ahorita lo voy a explicar todo eso
+pero porque les estoy mostrando la documentación oficial por algo muy
+sencillo como esto de aquí fue lanzado en diciembre está comentando
+pasé con ese que no todas las documentaciones están actualizadas de
+hecho si ustedes entran al mismo yemina y les ponen en quiero que me hagas esto
+yemina se va a confundir y les van a hacer cualquier cosa porque porque la
+documentación no está indexada entonces algo que puede hacer por ahí
+si es que tienen no el buque lm o incluso pueden copiarle esto yemina
+en chechenfe como que hoy quiero que te vas a hacer esto y armes esta prueba
+de concepto pero aquí les dejo la documentación oficial por si es que
+gustan algún generador de código o algún id con inteligencia artificial como
+clave como antigravity y quizá no les dé algo que funcione esta documentación
+oficial bien dicho eso vamos a
+ejen me cambiar
+permite cambiar ahora vamos a cambiar
+a esto
+pueden poner mi pantalla por favor
+¿Cuáles son las capacidades?
+Ahí está, bien. Entonces, esta es la documentación como oficial de lo que estamos haciendo. ¿Cuáles
+son las capacidades y qué es lo que tenemos aquí? Nosotros tenemos todas estas unas capacidades
+lo que puede hacer, ¿de acuerdo? Puede pensar, puede responder, le podemos dar cosas, puede
+ver si el usuario está hablando, si el usuario lo ha interrompido, hace todo esto de aquí.
+¿Y qué es lo que vamos a usar? Muy buena pregunta. Vamos a usar este modelo. Esto es lo que vamos
+a usar nosotros hoy para este pequeño momento, pequeño espacio. ¿Qué es lo que tiene esto?
+Bien, perfecto. ¿Por qué vamos a usar este muy sencillo? Este de cada vez es un modelo más
+estable, entonces tiene dos cosas. Es el 3.1, es flash, que quiere decir que es rápido, flash.
+Pero bueno, vamos a usar el modelo flash, vamos a usar el live, este es muy importante, muy
+importante que tenga de aquí, que se llama el live y preview. ¿Por qué preview? Porque
+por ahora esto es lo que tenemos, no hay un modelo oficial. Aquí vamos a, vamos a varias
+cosas. Por ejemplo, fíjese aquí, pero es un modelo normal, el resultado que me está dando
+es audio, esto es uso de lo que nosotros vamos a necesitar, vamos a necesitar que nos
+retorne audio. Entonces, si nosotros nos vamos al jardín de todos los modelos que tiene Google,
+por ejemplo, voy acá a todos los modelos. Miren, aquí están todos los modelos que
+podemos usar ahorita. Por ejemplo, voy acá al de Pro. Miren, el Pro tiene texto. ¿Se acuerdan
+que estábamos hablando de UX sin fricción y que debería ir de un lado o, ir de un lado
+o otro, ¿no? Y que, y que no debería pasar por este tema de ir, de que retorne texto
+y después convertirlo a audio. Ya, perfecto. Este. ¿Se dan cuenta el mejor de todo?
+Solo dime texto. Sigamos viendo, ¿no? Por ejemplo, vamos a ver este, ¿no?
+Esta es la traducción text-to-speech. El de text-to-speech tiene audio, porque es text-to-speech.
+Ingresa texto y vota audio. Entonces, significa que si nosotros usamos el 3.1 Pro,
+vamos a tener que usar un segundo modelo para que esto lo convierta. Pero si usamos
+un modelo en tiempo real, por ejemplo, el que ya habíamos listo, ¿no? Aquí está.
+Este, ¿no? Entonces, este aquí puede recibir audio, que es lo que nosotros necesitábamos
+y necesitábamos hablarle, y puede, puede traer audio. Así que, bien.
+Puede generar audio, justo lo que estábamos conversando. No puede ejecutar código
+porque pues es un modelo de audio, no podemos enviar esas cosas, ¿no?
+¿Qué más? Puede llamar la, puede llamar la opción. Tiene el Live Live que nos quedamos
+a ver hoy. Bien, bien, bien. Ahora, la última actualización fue el marzo de 2016.
+O sea, significa que hasta el mes de marzo, toda la información del intermedio
+que hay, lo tiene hasta marzo de 2016. Vea que si hoy hay, hoy no tiene información.
+Simplemente ese es más. Ya. ¿Viste? Pues es dicho eso. Vamos con lo siguiente.
+Vamos con lo que estábamos, con lo que estábamos conversando.
+Vamos acá, vamos a. Muy bien. Hasta aquí, preguntas, dudas.
+Nada. Dejé sus preguntas. Los, los voy a, los voy a estar leyendo y respondiendo.
+Bien. Ahora, para hacerlo necesitamos entender algo muy importante,
+que es arquitectura. ¿Cómo se comporta esto? Esto de acá se comporta de dos formas.
+Se comporta de client to server y server to server.
+¿Por qué es importante entender ese? Porque hoy, hoy en esta, en esta cacazón
+les voy a enseñar a usar una sola forma, que es client to server.
+Ya, después si lo quieren sacar a producción y quieren entender más, entender más de esto
+pueden leer las argumentaciones, como pueden escribir o pueden invitarnos a echarla
+y vemos lo de server to server. ¿Cuál es la diferencia? Es muy sencilla.
+Les voy a enseñar cómo, con un par de líneas de código, podemos insertar código
+y el agente, el coso que está haciendo cosas, nos va a escuchar y nos va a responder.
+Sencillísimo lo que vamos a usar. Para eso, vamos con el modelo.
+Ya hablamos de Gemini Flashlight Review, que es ese modelo que estábamos revisando.
+Y aquí están, estas son las características. Ya lo habíamos revisado.
+Ahí está el código QR para que ustedes puedan, puedan revisar la documentación
+más, más a él ahí. Entonces, dicho esto, estos más de diez minutos de teoría
+vamos a ver cómo funciona. Entonces, vamos a codear.
+A ver, a ver, déjenme buscar.
+¿Cómo está ya?
+Bien.
+Ahí está.
+Ahí está.
+Ahí está.
+¿Para algo?
+Muy bien. Entonces, ya está.
+Muy bien.
+Ya, perfecto. Entonces, ¿quién lo que necesitamos?
+Bien, para esto necesitamos una hoja HTML.
+Bien.
+Hay una muy buena pregunta. De hecho, quiero responder esta pregunta
+antes de empezar a hacer el código.
+¿Pueden seleccionar la pregunta de Dani y Rosas, por favor?
+Para todos dearla. Es, muchas gracias.
+Entonces, Dani lo dicen.
+¿No es mejor elegir un modelo que se ajuste a lo robusto de la tarea ejecutar?
+Por eso, él está hablando de 2.5 flash.
+Muy buena pregunta. Pase, que contese que la tarea que vamos a
+escutar nosotros en este preciso momento es un agente de voz en tiempo real.
+Entonces, dentro del modelo que hemos nosotros, dentro de todos los modelos
+que hemos buscado, de hecho, en la documentación que mostré en el código
+QR está el jardín de modelos que tiene disponible, el modelo que tiene
+disponible y el que podemos usar ahorita en este momento es justo este de aquí.
+Este de acá.
+Entonces, justo la tarea que queremos ejecutar, la tenemos que ejecutar en este modelo.
+¿Por qué? Porque le podemos enviar audio y nos puede responder audio.
+Entonces, por eso estamos usando este modelo.
+Así que, muchas gracias. Muchas gracias por la pregunta.
+Bien, entonces, pues vamos a...
+Necesitamos un código HTML, muy sencillo.
+Una página web cualquiera.
+Vamos a crear nuestro script.
+Este es muy importante que sea de tipo módulo.
+Entonces, acá tenemos nuestro script que sea de tipo módulo.
+¿Una vez hecho esto?
+Vamos a...
+Entonces, primero, vamos a importar nuestras llaves.
+No les voy a mostrar este archivo, por obvio es razón, no es parte de la llave.
+Y vamos a necesitar esta librería de aquí, que no necesitamos instalar nada.
+Como se dan cuenta, esto puede ser una página web cualquiera.
+Muy bien.
+Entonces, nosotros necesitamos dos cosas.
+Pero quiero que presione atención, al final les voy a dar todo el código,
+pero quiero que me presione atención.
+Nosotros necesitamos dos cosas.
+Necesitamos el canal por el cual nosotros, como usuarios, vamos a hablar,
+necesitamos el canal por el cual la IA nos va a responder.
+Para eso son estos dos cosas.
+De acá tenemos el audio que sale, el audio que la IA nos envía,
+y este es el audio que nosotros le enviamos a la IA.
+¿De acuerdo?
+Voy a explicar para qué sirva cada uno.
+Pensamos dos pistas.
+Entonces, tenemos context de entrada, context de salida.
+¿Bien?
+Una vez distanciado esto, vamos a tener justo esta librería,
+que es la que vamos a importar aquí.
+Le vamos a pasar nuestra API para que se autentifique.
+Y las instrucciones.
+Las instrucciones.
+Este de acá fue una jacatón en la que estuve en Quito.
+Dice, no, tu propósito es guiar, inspirar y ayudar a los estudiantes de la universidad.
+Al iniciar la conexión, debes saludar con entusiasmo, darles la bienvenida,
+explicar brevemente quién eres, y preguntarles si tienen alguna duda.
+Ahora, esta línea aquí es muy importante para ustedes.
+Dice, regla crítica.
+Mantén tus respuestas cortas.
+¿Por qué hay que mantener tus respuestas cortas?
+Porque, a veces, en realidad, pues, simplemente a veces hablan demasiado
+y ya hay muchos estudios de esto.
+Ahora, vamos aquí.
+Esto.
+No uses listas con viñetas.
+Ni texto que suene raro al ser leído en voz alta.
+Esto.
+Esa instrucción que ven aquí es muy importante.
+¿Por qué es muy importante esa instrucción?
+¿Por qué nosotros estamos haciendo?
+Estamos haciendo voz.
+Entonces, cuando nosotros escribimos en nuestra pantalla
+y nos devuelve, a veces nos devuelve con guiones, nos devuelve en negrita
+o nos devuelve con un link, todo eso no debe pasar.
+Porque si nos devuelve, por ejemplo, listas y nos devuelve con guiones,
+va a decir, ¿no?
+Los ingredientes para esta receta son 1 punto,
+papá, 2 puntos, arroz, 3 puntos.
+Y así no es como habla un ser humano, ¿verdad?
+El ser humano habla normal, habla fluido.
+Entonces, esta regla es muy, muy importante para lo que vamos.
+Y, pues, el doble.
+Ya está.
+Hay dos preguntas.
+¿Puede enfocar la pregunta de Felipe, por favor?
+¿Qué tan significativo es la diferencia?
+¿Qué tan significativo es la diferencia,
+la diferencia, precisión y calidad de las cosas entre este modelo,
+el Gemini, Life App y el Pro?
+Mira.
+Nosotros, ¿cuál es el objetivo de esto?
+Eso hay que entender muy bien.
+O sea, el objetivo de esto,
+imagínemos ahorita que vamos a hacer,
+vamos a hacer un asistente.
+Vamos a hacerlo cuando sí que estamos haciendo un asistente,
+pero vamos a hacer un asistente que me permite poder pedir una pizza.
+Entonces, si no vamos a pedir una pizza,
+no necesitamos tanto,
+tanta precisión, ¿no?
+Tanto motor para que nos ayude a pedir una pizza.
+Al contrario, necesitamos instrucciones.
+Tenemos muy buenas instrucciones para con esto pedir.
+Ahora, esto de acá, el objetivo de este tipo de asistentes
+o de este tipo de librerías o soluciones
+es ser un agente en tiempo real.
+Si tú le pones el Pro,
+no va a ser tan en tiempo real,
+porque se va a demorar y tú quieres que está
+esto que estamos construyendo converse contigo.
+Entonces, lo vamos a mantener liviano.
+La precisión y la calidad en este punto
+va a depender absurdamente de las instrucciones.
+¿Qué te puedo recomendar para que tengas
+muy buenas instrucciones y la precisión y calidad
+las cosas sean muy buenas usando un modelo como éste?
+Por ejemplo, es,
+abres Gemini Pro
+y le dices todo lo que tú quieres hacer.
+Quiero que mi asistente haga esto, esto, esto,
+este, este, ese, aquello.
+Y con toda esta información que tú tienes,
+quiero que me generes el Pro
+para este modelo.
+Y de esa manera,
+como Gemini conoce sus modelos,
+te va a generar un Pro eficiente.
+Que te va a dar esas mismas respuestas,
+esas mismas tradiciones, esa misma claridad.
+¿Qué necesitas para ese modelo?
+Así que, como que,
+bien.
+La siguiente pregunta
+de
+este modelo se puede cambiar.
+Sí, de hecho se puede cambiar.
+Podemos usar,
+no podemos usar todos los que están
+en la parte del garden
+que vimos,
+que vimos en el liste de modelos porque
+necesitamos uno que
+tenga estas características,
+¿saben? Que le podamos enviar a ODI
+y pueda recibir a ODI.
+Si encontramos un modelo que tiene eso,
+lo usamos.
+Ahora, algo también importante
+es que,
+dentro de,
+perdón, se blockó mi pantalla.
+Vamos
+a volver aquí,
+a mí.
+Listo.
+Modelo, modelo, modelo.
+Ah, ya.
+Estábamos hablando de esto, ¿verdad?
+Muy bien.
+Algo que también debemos saber
+de esto,
+es que tiene que soportar ahorita
+lo que estamos haciendo, ¿no?
+Que es el servicio en tiempo real.
+Es algo
+súper, súper importante.
+¿Lo pueden cambiar si lo soportan?
+Sí, pero también recordemos algo muy
+importante, que es el costos.
+Así que hay que
+tener esta parte de coste efectivo,
+no un modelo flash,
+debajo de mucho mejorato que un modelo pro.
+Especialmente si no quieres tanta carga
+de razonamiento, no tienes tanto de esto.
+Muy bien.
+Pregunta de Yera Meraki.
+¿El texto de locuras antes
+que el modelo lea? Sí, efectivamente.
+De hecho, el objetivo
+de esto es que las instrucciones
+sean
+lo más claras
+posibles, ¿no?
+Y a ver, estas instrucciones no pueden cambiar.
+Entonces, entre más
+detallado y más
+larga sea
+la instrucción,
+no pasa nada, porque es con lo
+que la IA va a empezar.
+Entonces, si no duden
+entender una instrucción muy larga,
+al inicio del año, por ejemplo,
+se filtraron los PROMS
+de curso, se filtraron los PROMS
+de diferentes empresas.
+Si ustedes nos encuentran en GitHub,
+son súper, súper, súper,
+súper, súper grandes.
+Entonces, no tengan miedo de que esta
+partecita de acá sea 200
+líneas de efectivo. No pasa nada.
+Está muy bien. De hecho, está mucho mejor
+si es que es un JSON,
+si es que es un Markbound
+va a ser mucho mejor, porque la IA
+los va a entender mejor.
+Entonces, eso.
+Aquí
+Jera
+Aham, muchas gracias.
+Exactamente, no,
+es justo lo que estamos hablando del tiempo real.
+Aham,
+Aham,
+Dani Rosa ha sido una pregunta,
+pero no necesariamente.
+Perfecto.
+Muy interesante.
+Si es cierto, tienes toda la razón.
+De hecho, la parte
+de la parte
+de tenerlo
+de voz a texto
+y de texto a voz.
+Totalmente puede ser open source
+y así no necesariamente salvo dentro
+de la parte original de Yaminhay,
+pero tienes más cosas que mantener.
+Entonces, ¿Qué pasa si ahora
+suba del modelo que nosotros hoy tenemos aquí,
+que es este de acá,
+este modelo de aquí sólo es hacer
+una sola cosa?
+Porque el modelo recibe audio,
+piensa en audio y te responde en audio,
+pero es tener que mantener muchas otras cosas
+más.
+Y si te vas a hacerlo de precios,
+este modelo tiene precios tan competitivos
+como el Yaminhay marchuro 1 htb.
+entonces sigue siendo muy competitivo con el logo de precios, entonces tienes dos puntos de vista
+sobre el tema de los modelos, tienes o tienes estos modelos open source que permiten transformar de
+audio text o audio que pueden ser más baratos, pueden ser libres, que se yo, pero tienes más
+lugares que mantener, tienes más puntos ciegos, no son puntos ciegos, pero tienes más lugares
+versus solamente tener una sola cosa que haga todo y que el precio sea competitivo.
+Ahí uno puede ir evaluando.
+Sí, lo voy a dejar hasta al final, va a estar todo el material, no se preocupa.
+Bien, listo, entonces, sigamos.
+Bien, ya vimos esto de aquí, vemos estas instrucciones, ¿qué es lo que tenemos aquí?
+Bien, ahora necesitamos esto, decirle la modalidad.
+Acá el modalidad puede ser Trescos, puede ser Audio, Texto o Video.
+En este caso puntual de este ejemplo vamos a hacer que todo sea por audio.
+Le vamos a enviar las instrucciones y estas dos, dos acciones es para poder leer lo que
+la IA está diciendo, o sea, lo que la IA dice en audio nos lo va a poner también en texto.
+Si nosotros quitamos esto pues simplemente lo vamos a leer.
+¿Qué más se puede poner aquí? Aquí se puede poner muchas cosas.
+De hecho, podemos poner el tipo de voz, podemos poner una voz un poco más robotizada,
+una voz un poco más andrógena, una voz un poco más masculina, por decirlo así,
+o más femenina, podemos jugar con eso.
+Google tiene 172 voces para poder jugar con ellas, así que pueden usar la que ustedes quieran.
+Si no ponen nada, va a coger alguna random por lo que toca, no hay ninguna red.
+¿Qué más se puede poner aquí? Aquí se puede poner, por ejemplo,
+que tanto queremos nosotros que escuche a la persona, ¿no?
+Por ejemplo, ¿qué, cuál es una interrupción?
+Si una persona tose es una interrupción o no es una interrupción,
+¿qué tan delicados vamos a hacer con el tema de las interrupciones?
+Podemos poner, por ejemplo, si queremos que sea empático,
+o sea, ¿qué quiere decir con el tema de la empatía,
+justo aquí, que si alguien te habla con emoción,
+el modelo también te habla con emoción.
+Si tu teléfono es triste, el modelo se va a poner triste.
+Entonces podemos cambiar varias cosas.
+Todo esto de aquí está en la documentación,
+ya les había mostrado, pero esto puede modificar aquí.
+Bien, ¿cómo funciona esto de aquí? Bien.
+Con esto conectamos, ¿no?
+Enviamos nuestro modelo y enviamos nuestra configuración.
+Y aquí tenemos tres cosas.
+Tenemos, ¿cómo va a escuchar?
+No, ¿cómo va a pensar o va a razonar o va a disponer,
+a inviar cosas?
+Tenemos, cuando hay errores, cuando se cierra.
+Entonces, vamos solamente a centrarnos aquí.
+Entonces, aquí necesitamos que cuando empiece a hablar,
+¿de acuerdo?
+No, perdón, cuando se termine de configurar todo lo que
+estamos haciendo, necesitamos que inicie el micrófono.
+Vamos al método de micrófono.
+¿Qué es el método de micrófono?
+El método de micrófono, lo que hace es inicia un stream
+donde vamos a tener solamente el audio de nuestro micrófono.
+¿Qué micrófono va a utilizar en portafelta?
+Por ejemplo, ahorita yo estoy con cable,
+si un día que ahorita va a coger el cable.
+Si por ahí ustedes después quieren cambiar,
+solamente lo cambia.
+Esta línea es súper, súper importante.
+¿Por qué?
+Porque nosotros necesitamos enviarle a la IA en 16
+kilogércitos.
+Esto es muy importante.
+La IA solamente o Yamini solamente va a entender si
+nosotros le enviamos 16 kilogércitos, o sea, 16,000.
+Este es el sample rate.
+Si le enviamos 16,1, no va a enterar nada.
+Esto es muy importante.
+¿Cómo piensa, cómo se clorifica?
+Aquí está, 16, 16.
+Entonces, nosotros le estamos enviando a la IA este audio.
+En 16 kilogércios.
+Bien, hasta aquí vamos a conectarlo esto a nuestro
+procesador.
+Y aquí ya tenemos nuestras.
+¿Se acuerdan que habíamos declarado tres variables
+arriba?
+Tenemos estas tres variables.
+Aquí.
+Entonces, para esto nos sirvan.
+Una tiene los 16,000 kilogércios.
+La otra tiene el stream del micrófono que se encarga
+de administrar cuando se conecta o se desconecta el
+micrófono.
+Y la última es el procesador, en la que se encarga de procesar
+todos estos bytes que están entrando y enviárselo a la
+IA.
+Hasta aquí tenemos esto de acá.
+Ahora, ¿qué pasa cuando la IA no se empieza a hablar a
+nosotros y empieza a responder?
+Para eso vamos a usar este método que se llama play audio.
+¿Qué hace este método?
+Este método lo que hace es crear un segundo contexto, el
+contexto de la IA, el canal de audio de la IA.
+Y este siempre, siempre es en 24 kilogércios.
+Si ponen 24-1, no les va a funcionar.
+Eso es otras cositas que pasa.
+¿Por qué existe esto?
+Este existe porque pues cada fabricante y cada explorador
+puede tener los kilogércios que uno quiera.
+Esto es como funciona.
+Bien, dicho eso, le vamos a poner una marca de tiempo para
+saber cuándo es cuando está hablando.
+Esto es muy importante.
+Bien, con esto vamos a montar aquí,
+saber cada cuánto la IA está hablando.
+Bien, aquí creamos esto a 24 kilogércios también.
+Creamos el container, el buffer, ¿de acuerdo?
+Y ya está, nada más.
+Lo único que tenemos que hacer.
+Ahora, ¿cómo sabemos que esto funciona?
+Aquí lo estamos agregando a nuestro canal principal y esto
+va a empezar a hablar.
+¿Por qué es importante esto de aquí?
+¿Por qué?
+Porque esto que está aquí está escuchando cada vez
+que la IA devuelve datos, que la IA devuelve información,
+devuelve cada cierto, cada tanto, lo devuelve,
+todo depende de la velocidad de la red.
+¿Qué quiere decir?
+Que si su red es muy rápida, una palabra como minombe,
+que se llama bralla, lo puede devolver todo el mismo rato.
+Puede devolver, por ejemplo, brr.
+Porque devolvió la p, la r, la i, la n en el mismo tiempo.
+Entonces, esta marca de agua y esta marca de tiempo que
+nos estamos creando aquí es para que cada vez que la IA devuelva
+algo, se espere a que se reproduzca lo anterior y recién
+lo reproduzca.
+Nada más.
+Bien.
+¿Hicho eso?
+Ya está, listo.
+No necesitamos nada más.
+Esto es todo, toda la charla.
+El resto que ven aquí que van a ver acá son métodos,
+métodos de ayuda que van a estar en mi código fuente.
+No se preocupen, no es necesario explicarlos tanto.
+Así que, vamos a ver cómo funciona.
+Vamos a iniciar esto.
+Vamos a dar un comentario.
+Aquí, en el video.
+Al ver, dice que esto no está definido.
+Entonces, ven un momento.
+¿Saben quién es tu definido?
+Si está definido.
+Vamos otra vez.
+Aquí.
+Está mic.
+No está definido.
+Cosas que pueden pasar cuando no hacen las cosas el tiempo real.
+Bien.
+Vamos a ver si ahora sí lo podemos resucar.
+OK, no se puede.
+OK, es muy raro, chicos.
+Le prometo que este debo si estaba pusiendo antes de hacer
+esto de aquí.
+Vamos a ver más rápido.
+Aquí tenemos aquí, tenemos todo esto, ¿no?
+Estos son métodos, métodos, métodos, métodos.
+Esto es todo esto de aquí.
+Vamos a pasar por aquí.
+Aquí, vamos a volver a iniciar.
+Bueno.
+No puede suceder algo, no, no, no, no.
+No se cuida.
+Radios.
+Ya, ¿saben qué?
+Vamos a devolverlo como sea.
+Ya.
+Vamos a...
+Y si te vamos a comentarlo, vamos a volver aquí.
+Y ya no debe tener errores.
+Esto no debe tener errores.
+Vamos a empezar.
+¿Listo? El micrófono está conectado.
+Vamos a María.
+Ah, no lo pueden escuchar, ¿no?
+Esperen.
+Esperen, esperen, esperen, esperen.
+Perdón, ustedes no pueden escucharlo.
+Déjenme compartir mi pantalla con la audio para que la escucha.
+¡Eh!
+¡Solo voy a...
+¡Solo voy a...
+¡Ah!
+Entonces.
+Mi...
+Compartir.
+Compartir pantalla.
+Compartir pantalla.
+Compartir pantalla.
+Ahí está.
+Ahora no pueden ver la consola que estoy diciendo, pero...
+Inicie la consola y quiero que escuchen.
+Hola, bienvenido formalmente al Build with AI de Santa Cruz.
+Soy tu copiloto de IA.
+¿Tienes alguna idea o duda que quieras que revisemos?
+¿Abrá que encendiste la consola?
+Sí, quiero que me expliques las capacidades que puedes hacer.
+¿Puedo ayudarte con ideas de proyectos, resolver dudas de código,
+o darte consejos para presentar tu demo?
+Estoy aquí para potenciar tu hackathon.
+¿Tienes algún tema en mente para empezar?
+Sí, cuéntame cómo podríamos usarte para hacer un ayudante para buscar hoteles.
+¿Podríamos entrenar un modelo para entender las preferencias del usuario?
+¿Cómo ubicación o precio?
+Luego buscaría entre varias opciones para recomendarte las mejores.
+¿Qué tipo de características quisieras que priorice?
+No, eso sería todo.
+Perfecto.
+Si tienes alguna otra idea o necesitas algo más para el proyecto,
+no dudes en avisarme a darle con todo en la hackathon.
+Miren esto.
+Ahora voy a compartir toda la pantalla.
+¿Pueden compartir mi pantalla?
+Ahí están, ¿no?
+Si se dan cuenta aquí está todo lo que habíamos dicho, ¿no?
+Por la inicial de la consola, es todo lo que me está hablando,
+este más ahorita sí o paro.
+Ahí está, listo, señores.
+Esto es lo que teníamos que hacer.
+Voy a cerrar esta carta que vuelvo al poco.
+Vamos a parar aquí y cierro.
+Ahí está.
+Bien.
+Entonces, esto acabamos de ser una gente muy, muy sencillo.
+Perdón por el código, pero funcionaba al final.
+Bien, esto es.
+Este Game Night Live App.
+Tiene su capa gratuita.
+Si ahorita ustedes registran el programa para Google for Developers,
+me van a dar 200 dólares gratis,
+así que pueden utilizar ahorita esto
+para poder potenciar sus MVP's.
+¿Dónde está el código?
+¿Y dónde está todo lo que he hecho?
+Está justo el espacio de aquí.
+Pasamos.
+Y en este código QR está el enlace a GitHub,
+donde pueden descargar todo el código.
+Y todo lo que hemos hecho hoy día,
+lo pueden revisar.
+Ahí está.
+Así que lo dejo ahí.
+Bien.
+Gerard pregunta.
+Si tengo Google AI Pro, me da algún crédito extra?
+No, porque esta parte es de Google for Developers.
+Esta es la parte de GCP.
+La parte de Google AI Pro es para anti-gravity,
+para poner Game Night in your email,
+para otra cosa.
+Todo lo que estamos haciendo es del lado de desarrollo.
+Entonces, no tienes nada de ese lado.
+No es cierto.
+Ya ahí está.
+Le voy a compartir estos slides
+por el grupo de Whatsapp,
+que están todos espero,
+para que tengan acceso a todos.
+Y por último,
+bueno, aquí está mi último meme,
+con este vertido.
+Los filales vayan bien.
+Y aquí está mis redes sociales.
+Me pueden encontrar en cualquier redes sociales
+en el grupo de Whatsapp.
+Háganme todas las preguntas que ustedes requieren.
+En el grupo de Whatsapp
+y los organizadores,
+también tienen el link de mi Calendly.
+Entonces, me pueden buquear
+también a cualquier hora.
+Prometo estar atento al Calendly
+y prometo ayudarles en todo lo que ustedes necesiten.
+Soy de profesión,
+soy ingeniero,
+pero me ha tocado hacer muchas cosas en negocio.
+Así que, si quieren debatir,
+quieren pensar o ver
+cómo incluso hacer un MVP
+y poder, no sé,
+empezar a probar como usuarios que me hablan
+y que con mucho gusto estoy
+para ayudarlas.
+Eso ha sido todo.
+Espero que les haya gustado.
+Perfecto,
+ahora hay muchísimas gracias
+y con esto cerramos
+esta charla.
+Queremos agradecerte
+por todo el conocimiento
+que nos diste hoy.
+La verdad que estuvo genial ver
+cómo entrenaste al modelo
+y mostraste cómo hablaba
+y la insiste en las pruebas.
+Entonces, bueno,
+está genial para que todas estas personas
+puedan seguir el paso a paso
+y construir una gente conversacional
+de alto impacto.
+Y bueno, muchas gracias a todos ustedes.
+Gracias por acompañarnos y participar.
+Esperamos que se lleven ideas concretas
+para aplicar en las soluciones
+de los retos.
+Y nos veremos mañana
+en el segundo día
+de nuestra hackathon con subsidio por 30x.
+Que tengan un excelente día.
+Sorte.
+Chao, chao, chao, chao, chao, chao, chao, chao.
+Chao.
