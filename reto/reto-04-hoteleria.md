@@ -61,4 +61,5 @@ A monthly physical inventory count flows **person counts → paper → second pe
 - Output = a clean, ERP-ready dataset (think: importable file/table), **not** an API integration.
 - The catalog + stock history are the fuel for validation and anomaly detection → we need (or must fabricate) realistic sample data. See `datos/`.
 - Form factor is free (WhatsApp agent, mobile app, web widget) — judged on how well it kills the error, not the channel.
+  **⚠ Superseded by the explicación live:** personal phones/WhatsApp are banned in bodegas by policy; **tablets are the sanctioned device**, offline support is required, and the count must stay blind. See `research/blind-spots.md` → "Hard design constraints".
 - Multi-bodega repetition means the flow must be restartable/parallelizable per bodega, not a one-shot form.
