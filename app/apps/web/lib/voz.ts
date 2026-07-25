@@ -121,25 +121,46 @@ export function escuchar(
   rec.maxAlternatives = 5;
 
   let entregado = false;
+  /** Lo último que se alcanzó a reconocer, aunque no haya llegado a "final". */
+  let ultimoInterino = '';
 
-  rec.onresult = (evento) => {
-    const ultimo = evento.results[evento.results.length - 1];
-    if (!ultimo) return;
-
-    if (!ultimo.isFinal) {
-      alParcial?.(ultimo[0]?.transcript ?? '');
-      return;
+  /** Extrae las alternativas de un resultado, de la mejor a la peor. */
+  function alternativas(resultado: ArrayLike<{ transcript: string }>): string[] {
+    const out: string[] = [];
+    for (let i = 0; i < resultado.length; i++) {
+      const t = resultado[i]?.transcript?.trim();
+      if (t) out.push(t);
     }
+    return out;
+  }
 
-    const hipotesis: string[] = [];
-    for (let i = 0; i < ultimo.length; i++) {
-      const t = ultimo[i]?.transcript?.trim();
-      if (t) hipotesis.push(t);
-    }
-    if (hipotesis.length === 0) return;
-
+  function entregar(hipotesis: string[]) {
+    if (entregado || hipotesis.length === 0) return;
     entregado = true;
     alTerminar(interpretar(indice, hipotesis));
+  }
+
+  rec.onresult = (evento) => {
+    // Se recorren TODOS los resultados, no solo el último: con
+    // interimResults activo, el navegador puede dejar un interino después
+    // del final, y mirar únicamente el último hacía que el final nunca se
+    // procesara — se veía la transcripción y no pasaba nada más.
+    const finales: string[] = [];
+    for (let i = 0; i < evento.results.length; i++) {
+      const r = evento.results[i];
+      if (!r) continue;
+      if (r.isFinal) finales.push(...alternativas(r));
+      else {
+        const t = r[0]?.transcript ?? '';
+        if (t.trim()) ultimoInterino = t;
+      }
+    }
+
+    if (finales.length > 0) {
+      entregar(finales);
+      return;
+    }
+    if (ultimoInterino) alParcial?.(ultimoInterino);
   };
 
   rec.onerror = (e) => {
@@ -157,6 +178,12 @@ export function escuchar(
   };
 
   rec.onend = () => {
+    // Red de seguridad: el navegador puede terminar SIN emitir un resultado
+    // final — pasa a menudo al soltar el botón a mitad de frase, o cuando
+    // decide que la frase acabó justo al cerrar. Antes se descartaba lo ya
+    // reconocido y el contador veía su dictado en pantalla sin que ocurriera
+    // nada. Se usa el interino: tener el texto y tirarlo es lo peor de todo.
+    if (!entregado && ultimoInterino) entregar([ultimoInterino]);
     if (!entregado) alParcial?.('');
     alFinalizar?.();
   };

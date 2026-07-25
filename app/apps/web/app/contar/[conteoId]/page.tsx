@@ -215,7 +215,12 @@ export default function Contar() {
       setAvisoVoz(r.avisos[0] ?? null);
 
       if (r.candidatos.length === 0) {
-        setAvisoVoz('No encontré ese artículo. Búscalo por nombre.');
+        // Se repite lo que se entendió: deja ver de un vistazo si el
+        // reconocedor oyó mal o si el producto no está en esta bodega.
+        setAvisoVoz(
+          `Entendí "${r.transcripcion}", pero no encontré ese artículo en esta bodega. ` +
+            'Lo dejé en el buscador para que lo ajustes.',
+        );
         setBusqueda(r.transcripcion);
         return;
       }
