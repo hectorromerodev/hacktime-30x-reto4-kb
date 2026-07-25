@@ -489,7 +489,8 @@ y una dependencia menos. Es un cambio acotado, de un solo archivo.
 pnpm --filter @conteo/core test
 ```
 
-**61 tests** con el test runner nativo de Node.js (`node:test`), sin Jest ni Vitest.
+**61 tests*
+* con el test runner nativo de Node.js (`node:test`), sin Jest ni Vitest.
 Cubren todo el paquete `core` — el mismo código que corre en el navegador sin red y en
 el servidor al sincronizar.
 
@@ -498,7 +499,6 @@ el servidor al sincronizar.
 | `parseEspanol.test.ts` | 24 | Números en español, fracciones, coma decimal colombiana, conversión g↔kg, conteos compuestos, envases, robustez ante dictado real |
 | `anomalias.test.ts` | 23 | Reglas R1–R9, `exp10` (orden de magnitud sin revelar SD), detección 9→90, conteo simultáneo, envases sin factor |
 | `normalizar.test.ts` | 14 | `quitarAcentos`: tildes, eñe→n; `normalizar`: espacios no-rompibles (U+00A0), puntuación; `descomponerNombre`: prefijos AFVT), sufijos (PA); `tokenizar` |
-
 ### 9.2 E2E (Playwright)
 
 Requiere el stack corriendo (`docker compose up -d`). Se ejecutan en un contenedor
