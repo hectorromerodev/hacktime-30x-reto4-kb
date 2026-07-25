@@ -163,7 +163,7 @@ dispositivo antes de tener red y el servidor inserta por esa llave.
 
 ### 2.4 Voz
 
-Mantén presionado el botón verde grande y di, por ejemplo:
+Toca el botón verde grande (o mantenlo presionado) y di, por ejemplo:
 
 - *"cinco kilos de harina"*
 - *"medio kilo de arroz"*
