@@ -87,10 +87,37 @@ Since the submission platform uses **pre-recorded video** (confirmed by Sandra m
 > *"We built a tablet app that captures the count in real-time, flags anomalies before they're saved, and asks the counter to confirm or re-count. Blind-count rule is never broken—the app never reveals expected quantities. Result: digitization in hours, not 2 days, zero entry errors."*
 
 **Live demo (50 sec):**
-> Show the core workflow on screen: counter says "9 cajas de harina", app voice-confirms "¿9 cajas?", counter taps confirm, anomaly flag triggers (e.g., "this is 5x yesterday's average"), counter re-counts and says "90 cajas", app accepts, demo ends. Show one workflow, not ten.
+
+> ⚠️ **CORREGIDO — el guion original describía una app que no es la nuestra.**
+> Decía: *"anomaly flag triggers (e.g., 'this is **5x yesterday's average**'), counter
+> re-counts and says '90 cajas', app accepts"*. Tres errores: **no existe histórico**
+> contra qué comparar, y el flujo está **invertido** — la app marca el **900** y ofrece
+> *"¿Eran 90?"*, no al revés.
+>
+> El flujo real, que además es más corto de contar:
+> 1. El contador selecciona **ACEITE** y teclea **900**.
+> 2. La app responde: *"900 litros está fuera de la escala habitual de ACEITE en esta
+>    bodega. Cuenta otra vez para confirmar."*
+> 3. Botón primario **Volver a teclear**; atajo **¿Eran 90?**; para aceptar hay que
+>    elegir un motivo, que queda registrado.
+> 4. Remate: *"el sistema dice 30,59 litros — y ese número no apareció en ningún momento.
+>    El conteo sigue siendo ciego."*
+>
+> Un solo flujo, como pide la charla. La voz va en otra toma: requiere red, y el segmento
+> de modo avión no la tiene.
 
 **Why it matters for Colsubsidio (10 sec):**
-> *"Offline-first design works in dead zones. Function-calling LLM backs up fuzzy matching. Auditors see a full trace. Compliance = zero manual retypings at risk."*
+
+> ⚠️ **CORREGIDO:** decía *"**Function-calling LLM** backs up fuzzy matching"*. **Falso.**
+> El emparejamiento es TypeScript sin dependencias, corriendo en el dispositivo. No hay
+> ningún LLM en ese camino, y eso es una **ventaja**, no una carencia: ningún dato de
+> inventario sale hacia un modelo de terceros, y funciona sin red.
+>
+> Versión defendible:
+> *"Human-in-the-loop: la app marca, la persona decide, y cada override queda registrado
+> con su motivo para que el auditor pueda ajustar el umbral. Todo el reconocimiento corre
+> en la tablet — sin red y sin mandar inventario a terceros. 99,4% de acierto en top-5
+> sobre los 936 artículos reales."*
 
 **Team + next steps (20 sec):**
 > *"Built by [names + roles]. If we win, we pilot with the Piscilago team this month. If it works there, we scale to all 48 bodegas."*
@@ -119,12 +146,31 @@ Record a 50-second screen capture of the live demo workflow *in advance*. If the
 
 ## Verdict: actionable 2-minute pitch skeleton for reto-4
 
+> ⚠️ **Este esqueleto se escribió antes de terminar la app y afirma cosas que no son.**
+> Los puntos 2, 3 y 4 están corregidos abajo. La estructura y los tiempos sí son buenos:
+> son los de la charla.
+
 1. **[0–20s] Hook:** "Piscilago park, 1405 stock rows, 48 bodegas, monthly blind count. One mis-read digit costs thousands. And it takes 2 days to fix in the system because a 'líder de costos' retypes it all by hand. We solved that."
-2. **[20–40s] What we built:** "A tablet app: counter speaks the count, app voice-confirms, flags anomalies (e.g., '5x yesterday'), counter decides to re-count or confirm. Blind rule intact. Digitization in hours, zero retypings at risk."
-3. **[40–90s] Live demo:** Counter says "9 cajas de harina", app confirms and flags, counter re-speaks "90 cajas", app accepts. Show one flow, clean.
-4. **[90–100s] Why it matters:** "Offline, voice-backed-by-LLM, auditable, Colsubsidio-policy-compliant."
+2. **[20–40s] Qué construimos:** *"Una app de tablet: el contador captura por voz, teclado
+   o escaneo; la app valida contra el catálogo, marca lo que se sale de la escala habitual
+   **antes de guardar**, y la persona decide. Funciona sin red y el conteo nunca deja de ser
+   ciego."*
+   ~~"flags anomalies (e.g., '5x yesterday')"~~ — **no hay histórico.**
+3. **[40–90s] Demo:** ACEITE → teclear **900** → *"fuera de la escala habitual"* →
+   **¿Eran 90?** → guardar. Rematar con: *"el sistema decía 30,59 y ese número nunca
+   apareció."* Un solo flujo, limpio.
+   ~~"counter re-speaks '90 cajas', app accepts"~~ — **el flujo va al revés**: la app marca
+   el 900.
+4. **[90–100s] Por qué importa:** *"Offline de verdad, human-in-the-loop con cada override
+   registrado, y todo el reconocimiento corre en la tablet: ningún dato de inventario sale
+   hacia terceros."*
+   ~~"voice-backed-by-LLM"~~ — **no hay LLM en el emparejamiento.**
 5. **[100–120s] Team + next:** "[Names]. Pilot Piscilago this month if we win. Scale to all 48."
 
 **Tone:** Energetic, problem-first, human at the center of the loop (the counter is making the decision, the app is assisting). No feature lists. No self-intro.
+
+**Y una de la charla de human-in-the-loop que aplica aquí:** declarar una limitación en voz
+alta *"eso es ganador"*. La más honesta y la más corta: **la voz necesita red** — por eso no
+es el único camino de captura.
 
 ---END---

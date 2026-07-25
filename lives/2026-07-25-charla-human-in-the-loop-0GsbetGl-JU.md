@@ -13,7 +13,9 @@ Julio structures **human oversight in AI workflows** as three bands, ranging fro
 
 3. **Human-on-the-side (or "human oversight"):** `"el otro es human... que es cuando la opera de manera un poco más autónoma, no está como digamos ya le dio el el loop el humano y la validación técnica y la IA puede tener más capacidad de decisión"` — the AI makes decisions semi-autonomously, and the human audits/monitors after the fact (or via logged decisions). Fastest, lowest real-time friction.
 
-**Key insight for reto-4:** Our blind-count + anomaly-flag workflow is **firmly in the HITL band**. The app says "this count is 5x yesterday's average, confirm or re-count?" — that checkpoint is *inside* the counting loop. The counter does not defer to the app; the counter decides. The app assists.
+**Key insight for reto-4:** Our blind-count + anomaly-flag workflow is **firmly in the HITL band**. The app says *"900 litros está fuera de la escala habitual de este artículo en esta bodega — cuenta otra vez para confirmar"* — that checkpoint is *inside* the counting loop, and it fires **before save**. The counter does not defer to the app; the counter decides. The app assists.
+
+> ⚠️ Corregido: decía ~~*"this count is 5x yesterday's average"*~~. No hay histórico. La comparación es contra el **orden de magnitud** del corte, que es lo único que el dispositivo conoce — y que no revela la cantidad esperada.
 
 ## The validation framework: five ethical checkpoints for LLM-assisted workflows
 
@@ -34,7 +36,15 @@ For reto-4: If the app flags "9 cajas de harina" as an anomaly, can we explain t
 - *"Yesterday you logged 1 caja; this is 9x higher."* (historical comparison) ← explainable.
 - *"The fuzzy-match confidence is 0.72, which is below 0.85 threshold."* ← too technical for a warehouse counter; needs human translation.
 
-**Implementation implication:** The voice-confirm flow must re-state the reason in plain Spanish before asking for re-count: `"¿9 cajas de harina? Eso es muy diferente del reporte de ayer (1 caja). ¿Estás seguro? Di 'Sí' para confirmar o 'Recuento' para contar de nuevo."`
+**Implementation implication:** el aviso explica el motivo en español llano, sin score y sin
+revelar la cantidad esperada. Copia tal como quedó construida:
+
+> *"900 litros está fuera de la escala habitual de ACEITE en esta bodega. Cuenta otra vez
+> para confirmar."* — con **Volver a teclear** como acción primaria.
+
+> ⚠️ **CORREGIDO.** La redacción anterior era
+> ~~*"Eso es muy diferente del reporte de ayer (1 caja)"*~~: inventaba un histórico que no
+> existe **y** habría filtrado el dato del sistema, rompiendo el conteo ciego.
 
 ### 3. **Real-world impact** (`"¿Eso genera un impacto real en las personas o no?"`)
 - Does the AI decision actually improve the counter's life or audit quality, or is it theater?
@@ -113,22 +123,32 @@ Julio mentions a **Colombia-specific AI policy framework** (COMPES 4.14, Nationa
 
 ### The HITL checkpoint in our blind-count workflow:
 
+> ⚠️ **CORREGIDO.** El diagrama original tenía dos errores graves: inventaba un histórico
+> (*"Yesterday: 1 caja"*) que **no existe**, y hacía que la app dijera *"eso es muy diferente
+> del reporte de ayer (1 caja)"*, lo cual **revelaría la cantidad esperada y rompería el
+> conteo ciego** — justo el control que Colsubsidio pidió proteger.
+>
+> Abajo va el flujo tal como está construido.
+
 ```
-Counter says (via voice): "9 cajas de harina"
+El contador captura 900 (por voz, teclado o escaneo)
     ↓
-[LLM + fuzzy-match engine]
-    ├─ Recognizes: "harina" (flour, 936-catalog item #234)
-    ├─ Checks: Is 9 anomalous? (Yesterday: 1 caja. 9 ÷ 1 = 9x. Threshold: 3x. FLAG.)
-    ├─ Checks: Is fuzzy confidence high? (Exact match. Confidence: 1.0. OK.)
+[Emparejador + reglas — TypeScript en el dispositivo, sin red y sin LLM]
+    ├─ Reconoce: ACEITE (catálogo de la bodega)
+    ├─ ¿Coincidencia segura?  score 0,97 y margen amplio → sí
+    └─ ¿Escala inusual?  el dispositivo tiene exp10=1 ("decenas"); 900 es orden 2 → MARCA
+                          (nunca recibió el 30,59: solo la escala)
     ↓
-[Human-in-the-Loop Checkpoint] ← THIS IS THE HITL VALIDATION
-    ├─ App voices back: "¿9 cajas de harina? Eso es muy diferente del reporte de ayer. ¿Estás seguro?"
-    ├─ Counter hears. Counter has two choices:
-    │   ├─ "Sí, confirmado." (human accepts the app's concern, still confirms 9.)
-    │   └─ "Recuento." (human decides to count again.)
+[Punto de control humano] ← AQUÍ ESTÁ LA VALIDACIÓN HITL, ANTES DE GUARDAR
+    ├─ "900 litros está fuera de la escala habitual de ACEITE en esta bodega.
+    │   Cuenta otra vez para confirmar."
+    ├─ Tres salidas:
+    │   ├─ [Volver a teclear]  ← acción PRIMARIA: re-teclear es lo que mata el error
+    │   ├─ [¿Eran 90?]         ← el vecino de un dígito, solo si cae en la escala esperada
+    │   └─ [Es correcto]       ← exige elegir un motivo antes de habilitarse
     ↓
-[If "Sí"]: Save 9 cajas, log the anomaly override in audit trail.
-[If "Recuento"]: Loop back, counter re-counts, voices new number, fuzzy-match tries again.
+[Si acepta]: se guarda, y el motivo queda en la hoja TRAZABILIDAD para el auditor.
+[Si re-teclea]: vuelve al teclado; si las dos capturas coinciden, guarda sin molestar.
 ```
 
 **Key properties:**
@@ -140,7 +160,8 @@ Counter says (via voice): "9 cajas de harina"
 ### Ethical validations applied to our HITL checkpoint:
 
 1. **Data provenance:** Catalog of 936 articles provided by Colsubsidio. ✓
-2. **Explainability:** `"¿9 cajas? Eso es muy diferente del reporte de ayer."` — the counter can understand *why* the flag triggered (comparison to history). ✓
+2. **Explainability:** `"900 litros está fuera de la escala habitual de ACEITE en esta bodega."` — el contador entiende *por qué* se marcó, en español llano y sin un score. Y sin revelar la cantidad esperada. ✓
+   *(Corregido: la versión anterior citaba una comparación "con el reporte de ayer" que habría filtrado el dato del sistema.)*
 3. **Real-world impact:** Eliminates the 9↔90 error before it costs 2 days of auditing. ✓
 4. **Hallucination & verification:** If fuzzy-match fails (e.g., an unrecognized article name), the counter notices and can correct. The app doesn't try to "guess" — it asks for re-confirmation. ✓
 5. **Reversibility:** Counter can re-count immediately within the same session. ✓
@@ -169,7 +190,7 @@ During the final Q&A with judges, if they ask *"What if the anomaly flag is wron
 ## Verdict: HITL principles for reto-4 confirmation UX
 
 1. **Flag, never decide.** The app flags anomalies; the counter decides.
-2. **Explain the reason in plain language.** Not "confidence=0.72 below threshold=0.85." Say "This is 5x yesterday's count."
+2. **Explain the reason in plain language.** Not "confidence=0.72 below threshold=0.85." Say *"está fuera de la escala habitual de este artículo en esta bodega"* — motivo entendible, sin score y sin filtrar la cantidad que espera el sistema. *(Corregido: decía ~~"This is 5x yesterday's count"~~, que asume un histórico inexistente.)*
 3. **Offer a fast recovery path.** If the flag is wrong, the counter can re-count immediately. No modal purgatory.
 4. **Log the override.** If the counter says "Sí" to a flagged anomaly, record it so the auditor can see and audit the decision.
 5. **Preserve the blind-count rule.** Never reveal the "expected" quantity to the counter. The flag is "unusual," not "wrong."

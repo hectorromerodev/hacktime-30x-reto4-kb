@@ -122,17 +122,32 @@ Web, post-sincronización. Tres vistas y ni una más:
    A partir de aquí puede irse el wifi y no pasa nada.
 2. **Cuenta por grupo de familia**, en el mismo orden físico en que ya recorre la bodega. La app nunca
    muestra cantidad esperada: solo el nombre del artículo y su unidad.
-3. **Habla.** *"Arroz doña pepa, doce kilos."* La app escribe la tarjeta: `ARROZ DOÑA PEPA · 12 Kilogram`,
-   la lee de vuelta en una línea y pasa a la siguiente. Sin tocar la pantalla.
-4. **Duda de captura.** *"Harina, noventa."* La app tenía baja confianza en el número →
-   *"¿Noventa o nueve?"* con dos botones grandes. Un toque, sigue.
-5. **Unidad incongruente.** *"Cinco gramos de harina."* El catálogo dice que la harina va en kilos →
-   *"El catálogo maneja harina en kilos. ¿Cinco kilos, o cinco gramos convertidos?"*
-6. **Cierra la bodega.** Resumen: 344 artículos, 341 capturados, 3 sin contar. Botón **Revisar y cerrar**.
-7. **Nivel 2, con el auditor.** *"3 artículos para recontar"* — con el motivo en lenguaje llano, no un score.
-   El auditor recorre, reconfirma o corrige, firma.
-8. **Sincroniza.** Al volver a cobertura: sube. En el panel aparece la bodega en verde, con su
-   contado-vs-sistema y su archivo listo para el ERP.
+3. **Habla.** *"Arroz doña pepa, doce kilos."* La app muestra la tarjeta:
+   `ARROZ DOÑA PEPA · 12 Kilogram` y la guarda con un toque.
+
+   > ⚠️ **CORREGIDO:** decía *"pasa a la siguiente"*. **La app ya no preselecciona nada al
+   > guardar.** El orden de la lista es el de la hoja del sistema y no tiene por qué coincidir
+   > con el recorrido real del estante; forzar el siguiente obligaba a cancelar. Se confirma
+   > lo guardado y el siguiente sin contar queda como atajo de un toque, no impuesto.
+
+4. **Salto de magnitud.** Teclea o dicta `900` para un artículo cuya escala habitual son las
+   decenas → *"900 litros está fuera de la escala habitual de ACEITE en esta bodega"*, con
+   **Volver a teclear** como acción primaria y **¿Eran 90?** como atajo. Aceptar exige elegir
+   un motivo, que queda registrado.
+
+   > La cantidad esperada (30,59 L) **no aparece en ningún lado**: el conteo sigue siendo ciego.
+
+5. **Unidad incongruente.** *"Cinco gramos de harina."* El catálogo mide harina en kilos → se
+   convierte a `0,005 kg` y se muestra la conversión; si no hubiera conversión posible, se
+   **bloquea** el guardado.
+6. **Cierra la bodega.** Resumen con resueltos / por resolver / sin contar, y la tabla de
+   contado-vs-sistema.
+7. **Sincroniza.** Al volver la cobertura sube sola la cola, sin duplicar.
+
+   > ⚠️ **CORREGIDO:** el paso 7 original describía un *"Nivel 2 con el auditor"* que
+   > *"recorre, reconfirma y firma"*. **Esa pantalla no existe.** Lo que hay es la vista del
+   > líder de costos (`/lider/<conteoId>`), con el resumen, las diferencias, los conflictos
+   > sin resolver y la descarga. No lo narren en el video.
 
 **Momento de la demo que hay que clavar:** el paso 4. Ese es el 9↔90 del brief, muriendo en vivo, en
 segundos, delante del jurado.
@@ -154,12 +169,39 @@ defendibles en el Q&A:
 > ✅ Reconciliado: son **252** filas sin `Nr.Artículo` (el mensaje de commit del perfil decía 241).
 > Ese es el número que va al pitch.
 
-**Sin histórico no hay detección de patrón.** El insumo es un corte único, sin serie temporal. Para el
-Nivel 2 y para el reporte de descuadres repetidos **sintetizamos 6 meses de histórico** a partir del corte
-real (con estacionalidad y merma plausibles) y lo decimos en voz alta en el pitch y en el README. Ocultarlo
-sería exactamente el tipo de cosa que un jurado que conoce el proceso detecta en el Q&A.
+**Sin histórico no hay detección de patrón.** El insumo es un corte único, sin serie temporal.
+
+> ⚠️ **CORREGIDO — este párrafo describía un plan que NO se ejecutó.**
+> Decía que *"sintetizamos 6 meses de histórico… y lo decimos en voz alta en el pitch"*.
+> **No se sintetizó ningún histórico.** No lo digan en el pitch: es indefendible en el Q&A,
+> porque no existe.
+>
+> Lo que sí se construyó: las reglas se apoyan en el **orden de magnitud del corte único**.
+> El dispositivo recibe `exp10 = floor(log10(sd))` — nunca la cantidad — y con eso detecta
+> el salto 9→900 incluso sin red. Ver `app/README.md` §6 y `apps/api/src/conteoCiego.test.ts`.
+>
+> La frase honesta para el pitch: *"no inventamos un histórico que no tenemos; usamos la
+> escala del corte real, y por eso funciona en modo avión."*
 
 ## 5. Stack propuesto (borrador — sujeto a lo que el equipo prefiera)
+
+> ⚠️ **CORREGIDO — esta sección quedó obsoleta. La tabla de abajo es el borrador previo,
+> no lo que se construyó.** Se conserva porque explica por qué se eligió cada cosa, pero
+> **para el pitch usen el stack real**:
+>
+> | Capa | Borrador | **Lo que se construyó** |
+> |---|---|---|
+> | App | Vite + React | **Next.js 16** (PWA, service worker propio) |
+> | Datos locales | IndexedDB | IndexedDB vía **Dexie** ✔ |
+> | Voz | Deepgram / Gemini | **Web Speech API** del navegador — gratis y sin llave |
+> | Voz offline | vocabulario cerrado local | **No existe.** El navegador no tiene ASR offline; se declara como limitación y el teclado cubre el caso |
+> | Confirmación hablada | TTS (ElevenLabs) | **No se construyó.** La confirmación es visual |
+> | Emparejamiento | trigramas + fonética | **Índice invertido por tokens + bigramas**, TypeScript sin dependencias ✔ |
+> | Backend / Hosting | DigitalOcean | **Vercel** (web) + **Render** (API Docker) + **Neon** (Postgres 18) |
+> | IA en la nube | central | **Opcional y no conectada.** El matcher, el parser y las reglas corren en el dispositivo: ningún dato de inventario sale hacia un modelo de terceros |
+>
+> Esa última fila es un argumento fuerte ante el jurado, no una carencia: responde sola la
+> pregunta de restricciones de IA en la nube, que Colsubsidio nunca aclaró.
 
 Criterio: que exista un **link vivo que el jurado pueda usar** ("hasta que no lo usemos… no es tan real") y
 que el offline sea de verdad, no una diapositiva.
@@ -282,7 +324,7 @@ restricción por unidad), no solo que funciona.
 |---|---|
 | El ASR falla con ruido de bodega (nunca se discutió en los lives) | Push-to-talk, vocabulario cerrado, confirmación hablada, teclado siempre a un toque |
 | Offline + voz en la nube son incompatibles | Grabar local siempre; resolver en nube si hay red, local si no; nunca bloquear la sesión |
-| Sin histórico real, el Nivel 2 se sostiene en datos sintéticos | Declararlo explícitamente en README y pitch; las reglas duras (negativos, decimales, unidad) sí salen del dataset real |
+| ~~Sin histórico real, el Nivel 2 se sostiene en datos sintéticos~~ **No se usaron datos sintéticos.** Las reglas se apoyan en el orden de magnitud del corte real | Declarado en `app/README.md` §8.6. Las reglas duras (negativos, decimales, unidad discordante) salen del dataset real |
 | El jurado abre el link y algo se rompe | Demo con datos precargados, sin login, ruta feliz probada; MP4 de respaldo |
 | Nos enamoramos de la voz y llegamos sin export | El export es imprescindible #5 del MVP; la voz sin salida limpia no resuelve el reto |
 | Quedan ~21 horas | El recorte de §6 es en orden; nada de la lista "si sobra tiempo" arranca antes de cerrar la imprescindible |
