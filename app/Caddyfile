@@ -1,0 +1,27 @@
+# HTTPS automatico.
+#
+#  - SITE_ADDRESS=localhost  -> Caddy emite un certificado local de desarrollo.
+#  - SITE_ADDRESS=tu.dominio -> Caddy pide un certificado real a Let's Encrypt.
+#
+# Todo cuelga de un solo origen para que el navegador no vea CORS y para que el
+# service worker pueda cachear la app y la API bajo el mismo scope.
+
+{$SITE_ADDRESS} {
+	encode gzip
+
+	# La API va primero: la ruta mas especifica gana.
+	handle_path /api/* {
+		reverse_proxy api:4000
+	}
+
+	handle {
+		reverse_proxy web:3000
+	}
+
+	header {
+		# El microfono y la camara se usan desde el propio origen.
+		Permissions-Policy "microphone=(self), camera=(self)"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

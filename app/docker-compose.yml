@@ -1,0 +1,88 @@
+# Levanta todo el sistema con un solo comando:
+#
+#   cp .env.example .env && docker compose up --build
+#
+# Caddy emite HTTPS automaticamente. Es obligatorio: el microfono y la camara
+# del navegador solo funcionan en contexto seguro, asi que sobre http:// plano
+# la mitad del producto no existe.
+
+name: conteo-inventarios
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-conteo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conteo_local_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-conteo}
+    ports:
+      # Expuesto para poder correr prisma/seed desde el host en desarrollo.
+      - '${PUERTO_POSTGRES:-5432}:5432'
+    volumes:
+      # Postgres 18 cambio la convencion: el volumen va en /var/lib/postgresql
+      # (no en /data), para que pg_upgrade --link pueda cruzar versiones sin
+      # chocar con el limite del punto de montaje.
+      - datos_postgres:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-conteo} -d ${POSTGRES_DB:-conteo}']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-conteo}:${POSTGRES_PASSWORD:-conteo_local_dev}@postgres:5432/${POSTGRES_DB:-conteo}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-secreto-de-desarrollo-cambiar-en-produccion}
+      API_PORT: 4000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      ORIGEN_WEB: ${ORIGEN_WEB:-https://localhost}
+    volumes:
+      # El seed lee el xlsx original del repo de investigacion.
+      - ../datos:/datos:ro
+    expose:
+      - '4000'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Se hornea en el bundle del cliente: el navegador llama a /api del
+        # mismo origen y Caddy lo enruta al servicio api.
+        NEXT_PUBLIC_API_URL: /api
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+    expose:
+      - '3000'
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+      - api
+    ports:
+      - '${PUERTO_HTTP:-80}:80'
+      - '${PUERTO_HTTPS:-443}:443'
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  datos_postgres:
+  caddy_data:
+  caddy_config:

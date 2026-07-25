@@ -1,0 +1,218 @@
+// Esquema del sistema de conteo.
+//
+// Decision estructural clave: `Stock.sd` (lo que el sistema espera) vive en su
+// propia tabla, separado de `Articulo`. El conteo ciego deja de depender de que
+// nadie olvide filtrar un campo en la UI: para exponer `sd` habria que hacer un
+// join explicito, y el unico endpoint que toca `Stock` es el de exportacion.
+// Al dispositivo del contador solo viaja `exp10`, el orden de magnitud.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Rol {
+  CONTADOR
+  LIDER
+}
+
+enum EstadoConteo {
+  ABIERTO
+  CERRADO
+  EXPORTADO
+}
+
+enum Metodo {
+  VOZ
+  TECLADO
+  CAMARA
+  BUSQUEDA
+}
+
+enum EstadoCaptura {
+  ACTIVA
+  REEMPLAZADA
+  ANULADA
+}
+
+model Usuario {
+  id     String  @id @default(cuid())
+  nombre String
+  /// PIN de 4 digitos. Dispositivo compartido de bodega, no app publica:
+  /// alcanza para atribuir capturas, que es todo lo que la auditoria exige.
+  pin    String
+  rol    Rol     @default(CONTADOR)
+  activo Boolean @default(true)
+
+  capturas        Captura[]
+  conteosCreados  Conteo[]             @relation("creador")
+  participaciones ConteoParticipante[]
+}
+
+model Bodega {
+  id                String  @id @default(cuid())
+  slug              String  @unique
+  /// Nombre tal cual aparece en la hoja BODEGAS DISPONIBLES.
+  nombre            String
+  nombreNormalizado String
+  /// Solo 8 de las 48 bodegas del archivo traen hoja de stock. Se marca
+  /// explicitamente para no aparentar que se ocultaron datos.
+  tieneInventario   Boolean @default(false)
+  hojaOrigen        String?
+
+  stocks  Stock[]
+  conteos Conteo[]
+
+  @@index([nombreNormalizado])
+}
+
+model Articulo {
+  id                String  @id @default(cuid())
+  /// Ausente en 252 de 1405 filas: por eso NO es la llave.
+  nrArticulo        String?
+  /// Verbatim del xlsx, con espacios raros incluidos. El export lo necesita
+  /// identico para que el lider de costos reconozca sus propias filas.
+  nombre            String
+  /// Llave real del dominio: nombre limpio y normalizado.
+  nombreNormalizado String  @unique
+  /// 'Unidad' | 'Kilogram' | 'Liter' | 'Portion' (los valores literales del xlsx).
+  unidad            String
+  /// Derivada en el seed: reproduce los "grupos de familia" del proceso actual.
+  familia           String  @default("OTROS")
+
+  stocks   Stock[]
+  capturas Captura[]
+  codigos  CodigoArticulo[]
+  factores ArticuloFactor[]
+
+  @@index([familia])
+}
+
+model Stock {
+  bodegaId   String
+  articuloId String
+  /// Lo que el sistema espera. NUNCA sale hacia el dispositivo del contador.
+  sd         Decimal @db.Decimal(14, 3)
+  /// floor(log10(sd)). Esto SI viaja: permite detectar el salto 9 -> 90 en
+  /// modo avion sin revelar la cantidad esperada.
+  exp10      Int?
+  /// Fila original de la hoja = orden fisico del formato impreso.
+  orden      Int
+
+  bodega   Bodega   @relation(fields: [bodegaId], references: [id], onDelete: Cascade)
+  articulo Articulo @relation(fields: [articuloId], references: [id], onDelete: Cascade)
+
+  @@id([bodegaId, articuloId])
+  @@index([bodegaId, orden])
+}
+
+model Conteo {
+  id          String       @id @default(cuid())
+  bodegaId    String
+  /// '2026-07'
+  periodo     String
+  fechaCorte  DateTime
+  estado      EstadoConteo @default(ABIERTO)
+  creadoPorId String
+  creadoEn    DateTime     @default(now())
+  cerradoEn   DateTime?
+
+  bodega       Bodega               @relation(fields: [bodegaId], references: [id])
+  creadoPor    Usuario              @relation("creador", fields: [creadoPorId], references: [id])
+  capturas     Captura[]
+  participante ConteoParticipante[]
+
+  @@unique([bodegaId, periodo])
+}
+
+model ConteoParticipante {
+  conteoId  String
+  usuarioId String
+  rol       Rol      @default(CONTADOR)
+  unidoEn   DateTime @default(now())
+
+  conteo  Conteo  @relation(fields: [conteoId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@id([conteoId, usuarioId])
+}
+
+model Captura {
+  id String @id @default(cuid())
+
+  /// UUID generado EN EL DISPOSITIVO antes de tener red. Es la llave de
+  /// idempotencia: reenviar el mismo lote no duplica nada.
+  clientId String @unique
+
+  conteoId   String
+  articuloId String
+
+  cantidad Decimal @db.Decimal(14, 3)
+  /// Unidad del catalogo en la que se guarda.
+  unidad   String
+  /// Como lo dijo la persona ('gramos'): deja auditable la conversion.
+  unidadDicha String?
+
+  metodo     Metodo
+  /// Transcripcion de voz o texto tecleado, literal.
+  textoCrudo String?
+  scoreMatch Float?
+
+  /// Codigos de regla disparados (R1, R3, R8...).
+  anomalias          Json    @default("[]")
+  /// Motivo que el contador eligio al confirmar una anomalia. Es la columna
+  /// que explica los descuadres en vez de solo listarlos.
+  motivoConfirmacion String?
+
+  usuarioId String
+  deviceId  String?
+
+  /// Reloj del dispositivo (puede venir desfasado tras horas sin red).
+  capturadoEn DateTime
+  /// Reloj del servidor: el orden confiable.
+  recibidoEn  DateTime @default(now())
+
+  estado      EstadoCaptura @default(ACTIVA)
+  /// Otro contador capturo el mismo articulo. No se suma en silencio:
+  /// se marca y el lider decide si fue recuento o ubicacion distinta.
+  enConflicto Boolean       @default(false)
+  revision    Int           @default(1)
+  reemplazaA  String?
+
+  conteo   Conteo   @relation(fields: [conteoId], references: [id], onDelete: Cascade)
+  articulo Articulo @relation(fields: [articuloId], references: [id])
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id])
+
+  @@index([conteoId, articuloId])
+  @@index([conteoId, estado])
+}
+
+/// Codigos de barras / QR de estante. El catalogo de Oracle no tiene ID unico
+/// para todos los productos, asi que este se enriquece solo con lo que se escanea.
+model CodigoArticulo {
+  codigo     String   @id
+  articuloId String
+  /// 'QR_ESTANTE' | 'EAN_APRENDIDO'
+  origen     String
+  creadoEn   DateTime @default(now())
+
+  articulo Articulo @relation(fields: [articuloId], references: [id], onDelete: Cascade)
+}
+
+/// Equivalencias de empaque aprendidas. No se inventan: se preguntan una vez
+/// por bodega y quedan guardadas.
+model ArticuloFactor {
+  id           String @id @default(cuid())
+  articuloId   String
+  bodegaId     String
+  nombreEmpaque String
+  factor       Decimal @db.Decimal(12, 3)
+
+  articulo Articulo @relation(fields: [articuloId], references: [id], onDelete: Cascade)
+
+  @@unique([articuloId, bodegaId, nombreEmpaque])
+}

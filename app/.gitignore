@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# NUNCA commitear credenciales — este repo es público por reglas del hackathon
+.env
+.env.*
+!.env.example
+*.pem
+caddy_data/
+caddy_config/

@@ -1,0 +1,96 @@
+@import 'tailwindcss';
+
+/*
+ * Diseño para tablet sostenida con un brazo y operada con el pulgar de la otra
+ * mano, en una bodega. Tres consecuencias:
+ *  - todo lo interactivo vive en la mitad inferior de la pantalla;
+ *  - ningun objetivo tactil baja de 56 px;
+ *  - alto contraste, porque hay bodegas con luz mala y pantallas con reflejo.
+ */
+
+:root {
+  --fondo: #0b1220;
+  --superficie: #131d2f;
+  --superficie-alta: #1c2942;
+  --borde: #2a3a58;
+  --texto: #f1f5f9;
+  --texto-tenue: #94a3b8;
+  --acento: #22c55e;
+  --acento-oscuro: #16a34a;
+  --alerta: #f59e0b;
+  --peligro: #ef4444;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--fondo);
+  color: var(--texto);
+  overscroll-behavior: none;
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  /* Evita el zoom accidental al tocar rapido durante el conteo. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@theme {
+  --color-fondo: #0b1220;
+  --color-superficie: #131d2f;
+  --color-superficie-alta: #1c2942;
+  --color-borde: #2a3a58;
+  --color-tenue: #94a3b8;
+  --color-acento: #22c55e;
+  --color-alerta: #f59e0b;
+  --color-peligro: #ef4444;
+}
+
+/* Objetivo tactil minimo. Se usa en todo boton del flujo de conteo. */
+.toque {
+  min-height: 56px;
+  min-width: 56px;
+}
+
+.tecla {
+  @apply flex items-center justify-center rounded-xl border border-borde bg-superficie-alta text-2xl font-semibold text-white active:bg-acento active:text-black;
+  min-height: 64px;
+  user-select: none;
+}
+
+.tarjeta {
+  @apply rounded-2xl border border-borde bg-superficie p-4;
+}
+
+/* El microfono es el elemento mas grande de la pantalla a proposito. */
+.microfono {
+  @apply flex items-center justify-center rounded-full transition-transform;
+  min-height: 104px;
+  min-width: 104px;
+}
+
+.microfono[data-escuchando='true'] {
+  @apply scale-110;
+  animation: latido 1.1s ease-in-out infinite;
+}
+
+@keyframes latido {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(34 197 94 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 22px rgb(34 197 94 / 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .microfono[data-escuchando='true'] {
+    animation: none;
+  }
+}

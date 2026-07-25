@@ -1,0 +1,18 @@
+{
+  "name": "Conteo de inventarios · Piscilago",
+  "short_name": "Conteo",
+  "description": "Captura de inventario físico. Funciona sin red.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": [
+    {
+      "src": "/icono.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

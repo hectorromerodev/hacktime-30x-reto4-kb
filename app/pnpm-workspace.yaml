@@ -1,0 +1,10 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+# Prisma necesita ejecutar scripts de instalacion para bajar sus motores nativos.
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+  # sharp: optimizacion de imagenes de Next en produccion.
+  sharp: true

@@ -1,0 +1,30 @@
+{
+  "name": "api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --experimental-strip-types --watch src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts",
+    "build": "prisma generate",
+    "db:push": "prisma db push --skip-generate",
+    "seed": "node --experimental-strip-types src/seed.ts",
+    "prepare:db": "prisma generate && prisma db push --skip-generate && node --experimental-strip-types src/seed.ts"
+  },
+  "dependencies": {
+    "@conteo/core": "workspace:*",
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/cors": "^10.0.2",
+    "@prisma/client": "^6.2.1",
+    "exceljs": "^4.4.0",
+    "fastify": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.5",
+    "prisma": "^6.2.1",
+    "typescript": "^5.7.3"
+  }
+}
