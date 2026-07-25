@@ -22,6 +22,7 @@ Captura inteligente en la toma física de inventarios — **Reto 4 · Hotelería
 6. [Decisiones de diseño](#6-decisiones-de-diseño-y-por-qué)
 7. [Problemas comunes](#7-problemas-comunes)
 8. [Limitaciones declaradas](#8-limitaciones-declaradas)
+9. [Tests](#9-tests)
 
 ---
 
@@ -205,22 +206,14 @@ Ingresa como **Bibiana Torres / 9999** → botón **Cierre** → verás:
 El CSV sale con **BOM y separador `;`**, que es lo que Excel en configuración regional
 colombiana abre sin romper acentos ni columnas.
 
-### 2.7 Pruebas automatizadas
-
-```bash
-pnpm --filter @conteo/core test
-```
-
-24 pruebas del parser de español (números, fracciones, conversión g↔kg, conteos compuestos).
+### 2.7 Evaluación del matcher fuzzy
 
 ```bash
 cd packages/core && node --experimental-strip-types src/eval/evalFuzzy.ts
 ```
 
-Evalúa el motor de coincidencia contra los **936 nombres reales** del catálogo, con seis
-tipos de deformación (dictado parcial, typos, letras faltantes, orden invertido…).
-
-Resultado actual:
+Mide el motor de coincidencia contra los **936 nombres reales** del catálogo, con seis
+tipos de deformación (dictado parcial, typos, letras faltantes, orden invertido…):
 
 ```
 GLOBAL  acc@1 = 94.3%   acc@5 = 99.4%
@@ -523,6 +516,52 @@ No queda ninguna dependencia **directa** con avisos abiertos.
 ya usa **`exceljs`** para generar los reportes. Usarlo también para *leer* el Excel en
 `apps/api/src/seed.ts` quitaría la dependencia `xlsx` por completo — dos avisos altos menos
 y una dependencia menos. Es un cambio acotado, de un solo archivo.
+
+---
+
+## 9. Tests
+
+### 9.1 Unitarios
+
+```bash
+pnpm --filter @conteo/core test
+```
+
+**61 tests** con el test runner nativo de Node.js (`node:test`), sin Jest ni Vitest.
+Cubren todo el paquete `core` — el mismo código que corre en el navegador sin red y en
+el servidor al sincronizar.
+
+| Módulo | Tests | Qué cubre |
+|---|---|---|
+| `parseEspanol.test.ts` | 24 | Números en español, fracciones, coma decimal colombiana, conversión g↔kg, conteos compuestos, envases, robustez ante dictado real |
+| `anomalias.test.ts` | 23 | Reglas R1–R9, `exp10` (orden de magnitud sin revelar SD), detección 9→90, conteo simultáneo, envases sin factor |
+| `normalizar.test.ts` | 14 | `quitarAcentos`: tildes, eñe→n; `normalizar`: espacios no-rompibles (U+00A0), puntuación; `descomponerNombre`: prefijos AFVT), sufijos (PA); `tokenizar` |
+
+### 9.2 E2E (Playwright)
+
+Requiere el stack corriendo (`docker compose up -d`). Se ejecutan en un contenedor
+Docker con Playwright + Chromium, conectado a la misma red que los servicios. El
+contenedor instala primero las dependencias del workspace (`web` + `@conteo/core`)
+con pnpm: la imagen de Playwright no trae `@playwright/test`, y como `web` depende de
+`@conteo/core` vía `workspace:*`, `npm ci` no sirve.
+
+```bash
+cd app
+docker run --rm \
+  --network conteo-inventarios_default \
+  -e PLAYWRIGHT_BASE=http://web:3000 \
+  -v "$PWD:/app" \
+  -w /app \
+  mcr.microsoft.com/playwright:v1.61.1-jammy \
+  bash -c 'corepack enable && pnpm install --frozen-lockfile --filter web... && cd apps/web && npx playwright test'
+```
+
+| Archivo | Tests | Qué cubre |
+|---|---|---|
+| `tests/ingreso.spec.ts` | 4 | Carga de pantalla, flujo usuario→PIN→bodegas, PIN incorrecto, botón Atrás |
+| `tests/conteo.spec.ts` | 5 | Entrar a bodega, seleccionar+contar+guardar, anomalía fuera de escala, búsqueda, offline |
+
+> **Nota:** La imagen `mcr.microsoft.com/playwright` se descarga una sola vez (~750 MB).
 
 ---
 
