@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { ETIQUETA_UNIDAD, type Unidad } from '@conteo/core';
 import type { ArticuloLocal } from '@/lib/db';
 
 /** Prefijo de las etiquetas QR que genera la app: `PSL:<articuloId>`. */
@@ -36,12 +37,38 @@ export function EscanerCodigo({
 }: {
   codigos: Map<string, string>;
   articulos: ArticuloLocal[];
-  onArticulo: (a: ArticuloLocal) => void;
+  /** Recibe el artículo y el código con el que se resolvió, para trazabilidad. */
+  onArticulo: (a: ArticuloLocal, codigo: string) => void;
   onCerrar: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [ultimo, setUltimo] = useState<string | null>(null);
+  /**
+   * Lo detectado, a la espera de que la persona lo valide con la vista.
+   *
+   * No se selecciona solo: una etiqueta de estante mal pegada, o el código de
+   * la caja de al lado, harían contar el artículo equivocado sin que nadie se
+   * entere. Un toque de más cuesta menos que un descuadre que aparece al
+   * cierre del mes.
+   */
+  const [porConfirmar, setPorConfirmar] = useState<{
+    articulo: ArticuloLocal;
+    codigo: string;
+  } | null>(null);
+
+  /**
+   * El catálogo se guarda en referencias para que el efecto de la cámara NO
+   * dependa de ellas. `articulos` y `onArticulo` llegan como valores nuevos en
+   * cada render del padre; si el efecto dependiera de ellos, la cámara se
+   * apagaría y se volvería a pedir permiso en cada render.
+   */
+  const datos = useRef({ codigos, articulos });
+  datos.current = { codigos, articulos };
+
+  /** Se detiene la búsqueda mientras hay algo esperando validación. */
+  const pausado = useRef(false);
+  pausado.current = porConfirmar !== null;
 
   useEffect(() => {
     let flujo: MediaStream | null = null;
@@ -78,17 +105,19 @@ export function EscanerCodigo({
       });
 
       const buscar = async () => {
-        if (cancelado || !video.current || video.current.readyState < 2) {
+        // Mientras algo espera validación no se sigue leyendo: si no, el
+        // siguiente fotograma sobrescribiría lo que la persona está mirando.
+        if (cancelado || pausado.current || !video.current || video.current.readyState < 2) {
           animacion = requestAnimationFrame(buscar);
           return;
         }
         try {
           const hallados = await detector.detect(video.current);
           for (const h of hallados) {
-            const articulo = resolver(h.rawValue, codigos, articulos);
+            const articulo = resolver(h.rawValue, datos.current.codigos, datos.current.articulos);
             if (articulo) {
               if (navigator.vibrate) navigator.vibrate(60);
-              onArticulo(articulo);
+              setPorConfirmar({ articulo, codigo: h.rawValue });
               return;
             }
             setUltimo(h.rawValue);
@@ -106,7 +135,9 @@ export function EscanerCodigo({
       cancelAnimationFrame(animacion);
       flujo?.getTracks().forEach((t) => t.stop());
     };
-  }, [codigos, articulos, onArticulo]);
+    // Sin dependencias: la cámara se abre una vez y se cierra al desmontar.
+    // Los datos que cambian se leen por referencia (ver `datos` arriba).
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
@@ -120,14 +151,57 @@ export function EscanerCodigo({
       <div className="relative flex-1 overflow-hidden">
         <video ref={video} playsInline muted className="h-full w-full object-cover" />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="h-56 w-56 rounded-2xl border-4 border-acento/80" />
+          <div
+            className={`h-56 w-56 rounded-2xl border-4 ${
+              porConfirmar ? 'border-acento' : 'border-acento/80'
+            }`}
+          />
         </div>
       </div>
 
+      {/* ── Validación visual ────────────────────────────────────────────
+          Se muestra el código leído tal cual y el artículo al que resolvió,
+          con su número de catálogo, para poder cotejarlo contra lo que se
+          tiene en la mano antes de contarlo. */}
+      {porConfirmar && (
+        <div className="border-t border-acento/50 bg-superficie px-5 py-4">
+          <p className="mb-1 font-mono text-xs text-tenue">
+            código leído: <span className="text-white">{porConfirmar.codigo}</span>
+          </p>
+          <p className="text-xl font-semibold">{porConfirmar.articulo.nombre.trim()}</p>
+          <p className="mb-4 text-sm text-tenue">
+            {porConfirmar.articulo.nrArticulo
+              ? `Nr. ${porConfirmar.articulo.nrArticulo} · `
+              : 'sin Nr. de artículo · '}
+            {ETIQUETA_UNIDAD[porConfirmar.articulo.unidad as Unidad].plural}
+            {porConfirmar.articulo.familia ? ` · ${porConfirmar.articulo.familia.toLowerCase()}` : ''}
+          </p>
+
+          <div className="grid gap-2">
+            <button
+              onClick={() => onArticulo(porConfirmar.articulo, porConfirmar.codigo)}
+              className="toque rounded-xl bg-acento text-base font-semibold text-black"
+            >
+              Sí, contar este
+            </button>
+            <button
+              onClick={() => {
+                setPorConfirmar(null);
+                setUltimo(null);
+              }}
+              className="toque rounded-xl border border-borde text-base"
+            >
+              No es · escanear otro
+            </button>
+          </div>
+        </div>
+      )}
+
       {error && <p className="px-5 py-4 text-sm text-alerta">{error}</p>}
-      {!error && ultimo && (
+      {!error && !porConfirmar && ultimo && (
         <p className="px-5 py-3 text-xs text-tenue">
-          Código leído sin artículo asociado: <span className="text-white">{ultimo}</span>
+          Código leído sin artículo asociado:{' '}
+          <span className="font-mono text-white">{ultimo}</span>
         </p>
       )}
     </div>

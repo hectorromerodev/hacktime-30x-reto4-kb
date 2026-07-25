@@ -577,6 +577,11 @@ export default function Contar() {
               <div className="min-w-0">
                 <p className="truncate text-lg font-medium">{activo.nombre.trim()}</p>
                 <p className="text-xs text-tenue">
+                  {/* El número de catálogo va visible para poder cotejarlo
+                      contra el producto que se tiene en la mano. */}
+                  {activo.nrArticulo && (
+                    <span className="font-mono">Nr. {activo.nrArticulo} · </span>
+                  )}
                   se cuenta en {ETIQUETA_UNIDAD[activo.unidad as Unidad].plural}
                 </p>
               </div>
@@ -705,10 +710,13 @@ export default function Contar() {
           codigos={codigos}
           articulos={articulos}
           onCerrar={() => setEscaneando(false)}
-          onArticulo={(a) => {
+          onArticulo={(a, codigo) => {
             setEscaneando(false);
             setMetodo('CAMARA');
             elegirArticulo(a);
+            // Queda en la hoja de trazabilidad con qué código se resolvió: si
+            // una etiqueta de estante está mal pegada, se ve en el reporte.
+            setTextoCrudo(codigo);
           }}
         />
       )}
