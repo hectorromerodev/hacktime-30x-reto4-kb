@@ -79,6 +79,12 @@ export default function Contar() {
   const [scoreMatch, setScoreMatch] = useState<number | null>(null);
   const [candidatos, setCandidatos] = useState<Candidato[]>([]);
   const [anomalias, setAnomalias] = useState<Anomalia[] | null>(null);
+  /** Confirmacion de lo ultimo guardado; reemplaza al avance automatico. */
+  const [ultimoContado, setUltimoContado] = useState<{
+    nombre: string;
+    cantidad: number;
+    unidad: Unidad;
+  } | null>(null);
   const [motivo, setMotivo] = useState<string | null>(null);
   const [avisoVoz, setAvisoVoz] = useState<string | null>(null);
 
@@ -369,8 +375,18 @@ export default function Contar() {
     setScoreMatch(null);
     setMetodo('TECLADO');
     setAvisoVoz(null);
-    // Avanza solo: el contador no vuelve a buscar en la lista.
-    setActivo(siguienteSinContar && siguienteSinContar.id !== activo.id ? siguienteSinContar : null);
+
+    // NO se selecciona solo el siguiente de la lista.
+    //
+    // El orden de la lista es el de la hoja del sistema, que no tiene por que
+    // coincidir con el recorrido real del almacen: el contador va por lo que
+    // tiene enfrente en el estante. Preseleccionar le obligaba a cancelar para
+    // contar lo que de verdad seguia.
+    //
+    // Queda libre: dicta, escanea o toca el articulo que sigue en SU acomodo.
+    // El siguiente sin contar se ofrece como atajo de un toque, no impuesto.
+    setUltimoContado({ nombre: activo.nombre.trim(), cantidad: valor, unidad: activo.unidad as Unidad });
+    setActivo(null);
   }
 
   if (cargando) return <Pantalla><p className="text-tenue">Cargando catálogo…</p></Pantalla>;
@@ -570,7 +586,7 @@ export default function Contar() {
                 className="col-span-2 rounded-xl bg-acento text-lg font-semibold text-black disabled:opacity-40"
                 style={{ minHeight: 64 }}
               >
-                Guardar y seguir
+                Guardar
               </button>
             </div>
 
@@ -587,27 +603,44 @@ export default function Contar() {
         ) : (
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-tenue">
-                {escuchando ? (
-                  <span className="font-medium text-acento">
-                    {parcial ? <span className="text-white">{parcial}…</span> : 'Escuchando… habla ahora'}
-                  </span>
-                ) : parcial ? (
-                  <span className="text-white">{parcial}…</span>
-                ) : siguienteSinContar ? (
-                  <>
-                    Siguiente:{' '}
-                    <button
-                      onClick={() => elegirArticulo(siguienteSinContar)}
-                      className="text-white underline"
-                    >
-                      {siguienteSinContar.nombre.trim()}
-                    </button>
-                  </>
-                ) : (
-                  'Todo contado en esta vista.'
-                )}
-              </p>
+              {escuchando ? (
+                <p className="text-sm font-medium text-acento">
+                  {parcial ? <span className="text-white">{parcial}…</span> : 'Escuchando… habla ahora'}
+                </p>
+              ) : parcial ? (
+                <p className="text-sm text-white">{parcial}…</p>
+              ) : (
+                <>
+                  {/* Confirmacion de lo guardado. Sustituye al avance
+                      automatico: informa sin arrastrar al contador a otro
+                      articulo. */}
+                  {ultimoContado && (
+                    <p className="truncate text-sm">
+                      <span className="text-acento">✓ </span>
+                      <span className="text-tenue">
+                        {ultimoContado.nombre} ·{' '}
+                        {ultimoContado.cantidad.toLocaleString('es-CO')}{' '}
+                        {ETIQUETA_UNIDAD[ultimoContado.unidad].corta}
+                      </span>
+                    </p>
+                  )}
+                  <p className="truncate text-sm text-tenue">
+                    {siguienteSinContar ? (
+                      <>
+                        Dicta, escanea o toca el que sigue. Atajo:{' '}
+                        <button
+                          onClick={() => elegirArticulo(siguienteSinContar)}
+                          className="text-white underline"
+                        >
+                          {siguienteSinContar.nombre.trim()}
+                        </button>
+                      </>
+                    ) : (
+                      'Todo contado en esta vista.'
+                    )}
+                  </p>
+                </>
+              )}
             </div>
 
             <button

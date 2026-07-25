@@ -101,8 +101,12 @@ Abre **http://localhost:3000**
 
 1. Ingresa como **Ana Gómez / 1111**.
 2. Elige **Kiosco Piscigiros AyB** (56 artículos — es la bodega más cómoda para demostrar).
-3. Toca un artículo → teclea la cantidad → **Guardar y seguir**.
-   La lista avanza sola al siguiente sin contar. **Dos toques por artículo.**
+3. Toca un artículo → teclea la cantidad → **Guardar**.
+
+Después de guardar **no se preselecciona nada**. El orden de la lista es el de la hoja
+del sistema, que no tiene por qué coincidir con el recorrido real del almacén: el contador
+va por lo que tiene enfrente en el estante. La app confirma lo guardado y ofrece el
+siguiente sin contar como **atajo de un toque**, sin imponerlo.
 
 Fíjate en que la lista **nunca muestra la cantidad que el sistema espera**. Es a propósito
 (ver [conteo ciego](#el-conteo-ciego-y-cómo-se-detecta-9--90-sin-romperlo)).
@@ -110,7 +114,7 @@ Fíjate en que la lista **nunca muestra la cantidad que el sistema espera**. Es 
 ### 2.2 La detección de anomalías (el caso del brief)
 
 1. Selecciona **ACEITE**.
-2. Teclea **900** → **Guardar y seguir**.
+2. Teclea **900** → **Guardar**.
 
 Aparece:
 

@@ -26,7 +26,7 @@ registrado como 90"*, un 3 escrito que se lee como 5, gramos confundidos con kil
 
 | Lo que pide el reto | Cómo se resuelve |
 |---|---|
-| Capturar más rápido y con menos error que papel + digitar | Dos toques por artículo en tablet: elegir → teclear → **Guardar y seguir**, que avanza solo. También por voz y por escaneo |
+| Capturar más rápido y con menos error que papel + digitar | Elegir → teclear → **Guardar**, en la tablet. El artículo se elige por voz, escaneo, búsqueda o toque: el contador va por lo que tiene enfrente, no por el orden de la hoja |
 | Reconocer producto, cantidad y unidad sin ambigüedad | *"cinco kilos de harina"* → parser de español propio. **Los gramos se convierten y la conversión se muestra**; una unidad que no corresponde **bloquea** el guardado |
 | Detectar anomalías **antes** de guardar | 9 reglas. La central: capturar 900 donde el patrón dice decenas pregunta *"¿Eran 90?"* — **sin revelar nunca la cantidad del sistema** |
 | Validar contra el catálogo en tiempo real | Motor de coincidencia por nombre sobre los 936 artículos reales: **99.4% de acierto en top-5**, 0.10 ms por consulta, **funcionando sin red** |
