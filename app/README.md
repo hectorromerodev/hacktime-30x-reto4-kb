@@ -287,7 +287,7 @@ app/
 │   ├── fuzzy.ts            índice invertido + puntaje  ← el crux técnico
 │   └── anomalias.ts        las reglas R1–R9
 ├── apps/api/               Node 24 + Fastify + Prisma + Postgres 18
-└── apps/web/               Next.js 15 + Tailwind 4 + Dexie (PWA)
+└── apps/web/               Next.js 16 + Tailwind 4 + Dexie (PWA)
 ```
 
 `packages/core` es la pieza clave: **el mismo matcher y las mismas reglas corren en el
@@ -436,6 +436,41 @@ Se listan de frente porque son decisiones, no descuidos.
 6. **No hay serie histórica.** El archivo es un corte único, así que las reglas de anomalía
    se apoyan en el orden de magnitud del corte, no en tendencias. Con varios cierres
    mensuales las mismas reglas mejoran sin cambiar la arquitectura.
+
+### Vulnerabilidades reportadas por `pnpm audit`
+
+`pnpm audit` reporta **8 avisos (6 altos, 2 moderados)**. Se revisaron uno por uno; el
+estado real es este:
+
+| Paquete | Avisos | Cadena real | Alcance |
+|---|---|---|---|
+| `xlsx` (SheetJS) | 2 altos — prototype pollution, ReDoS | `apps/api > xlsx` (**directa**) | Solo lee `BODEGAS Y STOCK.xlsx` en el seed: una vez al arrancar, sin red, sobre un archivo del propio repositorio. **La app nunca procesa un Excel subido por nadie** — no existe ruta de carga de archivos |
+| `postcss` | 2 altos + 1 moderado | `apps/web > next > postcss` (8.4.31) | Solo en tiempo de compilación, sobre CSS propio. No llega al bundle |
+| `sharp` | 1 alto (libvips) | `apps/web > next > sharp` | Optimización de imágenes de Next. La app no sirve imágenes de usuario |
+| `brace-expansion` | 1 alto (DoS) | `apps/api > exceljs > archiver > …` | Empaquetado del `.xlsx` que se exporta. Las rutas las arma el servidor, no el usuario |
+| `uuid` | 1 moderado | `apps/api > exceljs > uuid` (8.3.2) | Interno de `exceljs`. Los UUID de la aplicación los genera `crypto.randomUUID()`, no este paquete |
+
+**Ninguno se corrige con una actualización hoy** — verificado, no supuesto:
+
+- **Actualizar Next no los quita.** Se subió de Next 15 a **16.2.11** y los avisos de
+  `postcss` y `sharp` siguen exactamente igual: son las versiones que Next fija internamente.
+  Forzarlas con `overrides` cambiaría dependencias del framework sin ganancia real, porque
+  ninguna es alcanzable en tiempo de ejecución.
+- **`xlsx` no tiene versión parcheada en npm.** SheetJS dejó de publicar ahí a partir de
+  0.19 y solo distribuye por su propio registro, así que `0.18.5` es lo último que npm
+  ofrece. Los avisos piden `>=0.19.3` y `>=0.20.2`, que desde npm no existen.
+- **`brace-expansion` y `uuid` son internas de `exceljs`**, que sí está actualizado a su
+  última versión (4.4.0).
+
+**Cómo se eliminarían las dos de `xlsx`** (no se hizo por tiempo, y queda anotado): el
+proyecto ya usa **`exceljs`** para generar los reportes. Usarlo también para *leer* el Excel
+en `apps/api/src/seed.ts` quitaría `xlsx` por completo — dos avisos altos menos y una
+dependencia directa menos. Es un cambio acotado, de un solo archivo.
+
+**Cómo se eliminarían las de `xlsx`** (no se hizo por tiempo, y queda anotado): el proyecto
+ya usa **`exceljs`** para generar los reportes. Usarlo también para *leer* el Excel en
+`apps/api/src/seed.ts` quitaría la dependencia `xlsx` por completo — dos avisos altos menos
+y una dependencia menos. Es un cambio acotado, de un solo archivo.
 
 ---
 

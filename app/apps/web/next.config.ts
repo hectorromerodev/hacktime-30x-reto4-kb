@@ -17,7 +17,10 @@ const config: NextConfig = {
 
   // El paquete core es TypeScript sin compilar; Next lo transpila.
   transpilePackages: ['@conteo/core'],
-  eslint: { ignoreDuringBuilds: true },
+
+  // Next 16 quito la clave `eslint` de la config (el lint salio del build).
+  // El chequeo de tipos SI corre en el build, a proposito: preferimos que
+  // falle aqui y no en produccion.
   typescript: { ignoreBuildErrors: false },
 };
 
