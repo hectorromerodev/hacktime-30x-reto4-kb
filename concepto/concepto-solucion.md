@@ -3,6 +3,13 @@
 **Estado: DRAFT v0.1 (2026-07-25)** — primera bajada del concepto con lo que ya está en el KB.
 Escrito para iterarse: la sección §8 (UI/UX) es explícitamente el borrador que vamos a romper y rehacer.
 
+> ⚠️ **Este documento quedó atrás de la implementación.** Se escribió en paralelo a la construcción
+> de la app y **la app ya existe** en [`app/`](../app/), desplegada en
+> <https://conteo-inventarios.vercel.app>. Donde el concepto y el código no coincidan, **manda el
+> código**. Se conserva por lo que sí sigue vigente: el razonamiento de diseño, las restricciones
+> que salieron de los lives y las decisiones que hubo que tomar. Ver §11 para las diferencias ya
+> identificadas.
+
 Fuentes de todo lo que se afirma aquí: `reto/reto-04-hoteleria.md` (brief oficial),
 `lives/2026-07-22-explicacion-reto4-sVcLdIF0bjo.md` (Q&A con Colsubsidio),
 `lives/2026-07-22-apertura-DNi722_GAgw.md` (reglas y criterios),
@@ -144,8 +151,8 @@ defendibles en el Q&A:
 | Nombre sucio / homologación | Espacios dobles, `\xa0`, prefijos `AFVT)`; 341 artículos aparecen en ≥2 bodegas con el mismo nombre |
 | Unidad incongruente | 4 unidades en juego: `Unidad`, `Kilogram`, `Liter`, `Portion` — todas pre-declaradas por artículo |
 
-> ⚠️ Reconciliar: el mensaje de commit del perfil dice "241 missing Nr.Artículo" y la suma de la tabla del
-> perfil da **252**. Antes de citar el número en el pitch, arreglar cuál es.
+> ✅ Reconciliado: son **252** filas sin `Nr.Artículo` (el mensaje de commit del perfil decía 241).
+> Ese es el número que va al pitch.
 
 **Sin histórico no hay detección de patrón.** El insumo es un corte único, sin serie temporal. Para el
 Nivel 2 y para el reporte de descuadres repetidos **sintetizamos 6 meses de histórico** a partir del corte
@@ -274,18 +281,27 @@ restricción por unidad), no solo que funciona.
 | Nos enamoramos de la voz y llegamos sin export | El export es imprescindible #5 del MVP; la voz sin salida limpia no resuelve el reto |
 | Quedan ~21 horas | El recorte de §6 es en orden; nada de la lista "si sobra tiempo" arranca antes de cerrar la imprescindible |
 
-## 11. Pendientes y decisiones abiertas
+## 11. Dónde el concepto ya quedó atrás del código
 
-1. **Nombre**: "Cuenta Clara" es propuesta, no decisión.
-2. **Repo de la solución: NO EXISTE todavía.** Debe crearse público y con fecha ≥ 22-jul (regla de
-   evaluación) y congelarse a las 11:30am del domingo. Es el bloqueo más tonto posible y hay que resolverlo ya.
-3. ⚠️ **`hacktime-30x-reto4-kb` está PÚBLICO en GitHub** (creado 2026-07-23) aunque su README lo llama
-   *"private knowledge base"*. Toda nuestra investigación es visible para los otros equipos. Decidir:
-   volverlo privado, o asumirlo y enlazarlo como research del proyecto.
-4. Confirmar en el grupo de WhatsApp: columnas exactas del export (la pregunta quedó sin respuesta clara).
-5. Reconciliar 241 vs 252 filas sin `Nr.Artículo` antes de citar el número.
-6. Decidir bodega de la demo (propuesta: Kiosco Taquilla AyB, 58 filas, 6 saldos negativos).
-7. Reparto del equipo para las horas que quedan, y quién narra el video.
+Revisado contra `app/` y el README de la raíz el 2026-07-25:
+
+1. **Nombre**: "Cuenta Clara" fue propuesta y **no se adoptó** — el proyecto se llama
+   *Conteo de inventarios · Piscilago*.
+2. **Repo de la solución**: el concepto decía que no existía. **Sí existe**: la app vive en este mismo
+   repositorio, bajo `app/` (core + API Fastify/Prisma + web Next.js), con demo en producción.
+3. **Repo público**: decidido — se asume público y se enlaza como investigación del proyecto.
+4. **Reglas de anomalía**: el concepto plantea un puñado; la implementación tiene **9**.
+5. **Conteo ciego**: el concepto solo lo prohíbe por diseño; la implementación además lo **prueba**
+   (`app/apps/api/src/conteoCiego.test.ts` falla si la cantidad esperada se filtra) y expone únicamente
+   el *orden de magnitud*, no el saldo.
+6. **Emparejamiento difuso**: el concepto lo deja como propuesta; ya está medido contra los 936 nombres
+   reales — acc@1 94.3%, acc@5 99.4%, 0.10 ms por consulta.
+7. **Unidades**: el concepto solo pregunta ante incongruencia; la implementación **convierte gramos y
+   muestra la conversión**, y **bloquea** cuando la unidad no corresponde.
+8. **Filas sin `Nr.Artículo`**: reconciliado en **252** (el mensaje de commit del perfil decía 241).
+
+Sigue abierto: columnas exactas del export (nunca se respondió con claridad en el live), bodega para
+la demo del video, y quién narra los 2 minutos.
 
 ---
 
