@@ -11,3 +11,4 @@ out/
 *.pem
 caddy_data/
 caddy_config/
+.vercel
