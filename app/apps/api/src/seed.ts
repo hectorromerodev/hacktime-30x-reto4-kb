@@ -13,10 +13,9 @@
  *  - solo 8 de las 48 bodegas listadas tienen hoja de stock.
  */
 
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { PrismaClient } from '@prisma/client';
 import { descomponerNombre, normalizar, calcularExp10, UNIDADES } from '@conteo/core';
 import { clasificarFamilia } from './familias.ts';
@@ -32,6 +31,66 @@ const HOJA_BODEGAS = 'BODEGAS DISPONIBLES';
 const UNIDADES_VALIDAS = new Set<string>(UNIDADES);
 
 type Fila = Record<string, unknown>;
+
+/**
+ * Convierte el valor de una celda de ExcelJS a algo plano.
+ *
+ * ExcelJS no devuelve escalares siempre: una celda puede venir como texto
+ * enriquecido, como formula con su resultado, o como hipervinculo. Si no se
+ * desenvuelven, terminan como "[object Object]" en el nombre del articulo.
+ */
+function valorCelda(valor: unknown): unknown {
+  if (valor == null) return undefined;
+  if (typeof valor === 'object') {
+    const v = valor as Record<string, unknown>;
+    if (Array.isArray(v.richText)) {
+      return (v.richText as { text: string }[]).map((t) => t.text).join('');
+    }
+    if ('result' in v) return valorCelda(v.result);
+    if ('text' in v) return v.text;
+    if (valor instanceof Date) return valor;
+    return undefined;
+  }
+  return valor;
+}
+
+/**
+ * Lee una hoja como lista de objetos, usando la primera fila con contenido
+ * como encabezado. Replica lo que hacia `XLSX.utils.sheet_to_json`, que es lo
+ * que este seed esperaba antes de cambiar de libreria.
+ */
+function hojaAFilas(hoja: ExcelJS.Worksheet): Fila[] {
+  const filas: Fila[] = [];
+  let encabezados: string[] | null = null;
+
+  hoja.eachRow({ includeEmpty: false }, (fila) => {
+    const celdas: unknown[] = [];
+    // `fila.values` viene desplazado: el indice 0 no se usa.
+    const valores = fila.values as unknown[];
+    for (let i = 1; i < valores.length; i++) celdas[i - 1] = valorCelda(valores[i]);
+
+    if (!encabezados) {
+      encabezados = celdas.map((c) => (c == null ? '' : String(c).trim()));
+      return;
+    }
+
+    const objeto: Fila = {};
+    let tieneAlgo = false;
+    encabezados.forEach((clave, i) => {
+      if (!clave) return;
+      const v = celdas[i];
+      // Se omiten las celdas vacias, igual que sheet_to_json: asi
+      // `columna()` devuelve undefined y las filas de relleno se descartan.
+      if (v == null || v === '') return;
+      objeto[clave] = v;
+      tieneAlgo = true;
+    });
+
+    if (tieneAlgo) filas.push(objeto);
+  });
+
+  return filas;
+}
 
 /** Busca una columna tolerando typos, acentos y espacios ('CANTIDA' vs 'CANTIDAD'). */
 function columna(fila: Fila, ...alias: string[]): unknown {
@@ -120,10 +179,16 @@ async function main() {
   }
 
   console.log(`Leyendo ${RUTA_XLSX}`);
-  const libro = XLSX.read(readFileSync(RUTA_XLSX), { type: 'buffer' });
+  const libro = new ExcelJS.Workbook();
+  await libro.xlsx.readFile(RUTA_XLSX);
+
+  /** Busca una hoja por nombre exacto, tolerando espacios sobrantes. */
+  const hojaPorNombre = (nombre: string) =>
+    libro.worksheets.find((h) => h.name.trim() === nombre.trim());
 
   // ── Bodegas ────────────────────────────────────────────────────────────
-  const filasBodegas = XLSX.utils.sheet_to_json<Fila>(libro.Sheets[HOJA_BODEGAS] ?? {});
+  const hojaBodegas = hojaPorNombre(HOJA_BODEGAS);
+  const filasBodegas = hojaBodegas ? hojaAFilas(hojaBodegas) : [];
   const bodegasPorSlug = new Map<string, { slug: string; nombre: string; norm: string }>();
 
   for (const fila of filasBodegas) {
@@ -138,7 +203,9 @@ async function main() {
   console.log(`Bodegas listadas: ${bodegasPorSlug.size} (de ${filasBodegas.length} filas)`);
 
   // ── Hojas de stock ─────────────────────────────────────────────────────
-  const hojasStock = libro.SheetNames.filter((n) => n !== HOJA_BODEGAS);
+  const hojasStock = libro.worksheets
+    .map((h) => h.name)
+    .filter((n) => n.trim() !== HOJA_BODEGAS);
 
   interface FilaStock {
     hoja: string;
@@ -158,7 +225,9 @@ async function main() {
   let descartadas = 0;
 
   for (const hoja of hojasStock) {
-    const filas = XLSX.utils.sheet_to_json<Fila>(libro.Sheets[hoja]);
+    const worksheet = hojaPorNombre(hoja);
+    if (!worksheet) continue;
+    const filas = hojaAFilas(worksheet);
     let orden = 0;
     for (const fila of filas) {
       const nombre = textoODefecto(columna(fila, 'Artículo', 'Articulo')).trim();
