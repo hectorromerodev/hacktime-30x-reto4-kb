@@ -57,6 +57,28 @@ body {
   min-width: 56px;
 }
 
+/*
+ * Alto de pantalla REAL.
+ *
+ * `100vh` no sirve: en Chrome y Safari moviles equivale al viewport GRANDE, el
+ * que existiria si la barra de direcciones estuviera colapsada. Mientras la
+ * barra esta visible, los ultimos ~100 px del layout quedan por debajo del area
+ * util — y ahi es justo donde vive el boton de microfono, que se volvia
+ * imposible de pulsar.
+ *
+ * `100dvh` sigue el viewport dinamico y se ajusta cuando la barra aparece o se
+ * esconde. Se deja `100vh` antes como respaldo para navegadores sin dvh.
+ */
+.alto-pantalla {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Respeta la barra de gestos del telefono/tablet. */
+.margen-inferior-seguro {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
 .tecla {
   @apply flex items-center justify-center rounded-xl border border-borde bg-superficie-alta text-2xl font-semibold text-white active:bg-acento active:text-black;
   min-height: 64px;

@@ -40,7 +40,7 @@ import {
   alCambiarConexion,
   type EstadoConexion,
 } from '@/lib/sync';
-import { escuchar, vozDisponible, type ResultadoVoz } from '@/lib/voz';
+import { escuchar, vozDisponible, pedirPermisoMicrofono, type ResultadoVoz } from '@/lib/voz';
 import { EscanerCodigo } from '@/components/EscanerCodigo';
 
 interface RespuestaCatalogo {
@@ -88,6 +88,9 @@ export default function Contar() {
   const [parcial, setParcial] = useState('');
   const [escaneando, setEscaneando] = useState(false);
   const detener = useRef<(() => void) | null>(null);
+  /** Momento del pointerdown, para distinguir un toque de un mantener. */
+  const inicioPulsacion = useRef(0);
+  const permisoOk = useRef(false);
 
   const indice = useMemo(
     () => (articulos.length ? construirIndice(articulos) : null),
@@ -143,6 +146,14 @@ export default function Contar() {
       setCargando(false);
     })();
   }, [conteoId, router]);
+
+  // Se avisa de entrada si el navegador no reconoce voz, en vez de dejar que
+  // el contador descubra al tercer intento que el boton no hace nada.
+  useEffect(() => {
+    if (!vozDisponible()) {
+      setAvisoVoz('Este navegador no reconoce voz. Cuenta con el teclado o la búsqueda.');
+    }
+  }, []);
 
   useEffect(() => {
     const parar = arrancarSincronizacion(conteoId);
@@ -219,8 +230,14 @@ export default function Contar() {
     [],
   );
 
+  /**
+   * Arranca la escucha. Se llama DIRECTO desde el manejador del gesto, sin
+   * ningun `await` antes: Safari exige que `start()` ocurra dentro del gesto
+   * del usuario, y meter una promesa en medio lo invalida. Por eso el permiso
+   * de microfono se diagnostica DESPUES de fallar, no antes de empezar.
+   */
   function iniciarEscucha() {
-    if (!indice) return;
+    if (!indice || escuchando) return;
     // La voz depende de los servidores del reconocedor, no de nuestra API:
     // con el servidor caido pero con internet, sigue funcionando. Por eso
     // aqui se mira navigator.onLine y no el estado de sincronizacion.
@@ -228,19 +245,66 @@ export default function Contar() {
       setAvisoVoz('Sin red la voz no está disponible. Usa el teclado.');
       return;
     }
+
     setEscuchando(true);
     setAvisoVoz(null);
-    detener.current = escuchar(indice, alResultadoVoz, setParcial, (m) => {
-      setEscuchando(false);
-      setParcial('');
-      setAvisoVoz(m);
-    });
+
+    detener.current = escuchar(
+      indice,
+      alResultadoVoz,
+      setParcial,
+      (m) => {
+        setEscuchando(false);
+        setParcial('');
+        setAvisoVoz(m);
+        // Si el navegador dijo que no hay permiso, se averigua el motivo real
+        // para poder decirle al contador que hacer.
+        if (m.includes('bloqueado') && !permisoOk.current) {
+          void pedirPermisoMicrofono().then((r) => {
+            if (r.ok) permisoOk.current = true;
+            else setAvisoVoz(r.motivo);
+          });
+        }
+      },
+      () => setEscuchando(false),
+    );
   }
 
   function terminarEscucha() {
     detener.current?.();
     detener.current = null;
     setEscuchando(false);
+  }
+
+  /**
+   * Gesto tolerante: sirve manteniendo presionado Y tocando.
+   *
+   * Antes solo funcionaba manteniendo: un toque normal arrancaba y cortaba a
+   * los ~100 ms, antes de que a nadie le diera tiempo de hablar, y parecia que
+   * "el audio no jala". Ahora una pulsacion corta deja el microfono abierto
+   * hasta que el reconocedor detecta el final de la frase o se toca de nuevo.
+   */
+  const UMBRAL_TOQUE_MS = 400;
+
+  function alPresionarMicrofono() {
+    if (escuchando) {
+      // Segundo toque durante la escucha: cierra.
+      terminarEscucha();
+      inicioPulsacion.current = 0;
+      return;
+    }
+    inicioPulsacion.current = performance.now();
+    iniciarEscucha();
+  }
+
+  function alSoltarMicrofono() {
+    if (!inicioPulsacion.current) return;
+    const duracion = performance.now() - inicioPulsacion.current;
+    inicioPulsacion.current = 0;
+    // Mantener presionado -> se cierra al soltar.
+    // Toque corto -> se deja abierto; el reconocedor cierra solo al terminar
+    // la frase, o el contador vuelve a tocar.
+    if (duracion >= UMBRAL_TOQUE_MS) terminarEscucha();
   }
 
   function elegirArticulo(a: ArticuloLocal, score: number | null = null) {
@@ -316,9 +380,9 @@ export default function Contar() {
   const contados = contadosPorArticulo.size;
 
   return (
-    <main className="mx-auto flex h-screen max-w-2xl flex-col">
+    <main className="alto-pantalla mx-auto flex max-w-2xl flex-col overflow-hidden">
       {/* ── Cabecera: progreso y estado de red ── */}
-      <header className="flex items-center justify-between border-b border-borde px-4 py-3">
+      <header className="flex shrink-0 items-center justify-between border-b border-borde px-4 py-3">
         <div className="min-w-0">
           <button onClick={() => router.push('/')} className="truncate text-left">
             <span className="block truncate font-medium">{bodega}</span>
@@ -361,7 +425,7 @@ export default function Contar() {
         </div>
       </header>
 
-      <div className="h-1 bg-superficie">
+      <div className="h-1 shrink-0 bg-superficie">
         <div
           className="h-full bg-acento transition-all"
           style={{ width: `${total ? (contados / total) * 100 : 0}%` }}
@@ -369,7 +433,9 @@ export default function Contar() {
       </div>
 
       {/* ── Lista de articulos (sin cantidades del sistema) ── */}
-      <section className="flex-1 overflow-y-auto px-4 py-3">
+      {/* min-h-0 es obligatorio: sin el, un hijo flex se niega a encogerse por
+          debajo de su contenido y empuja la zona de captura fuera del marco. */}
+      <section className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
           {familias.map((f) => (
             <button
@@ -430,7 +496,7 @@ export default function Contar() {
       </section>
 
       {/* ── Zona de captura, siempre en la mitad inferior ── */}
-      <section className="border-t border-borde bg-superficie/70 px-4 pb-5 pt-3 backdrop-blur">
+      <section className="margen-inferior-seguro shrink-0 border-t border-borde bg-superficie/70 px-4 pt-3 backdrop-blur">
         {avisoVoz && (
           <p className="mb-2 rounded-lg bg-alerta/15 px-3 py-2 text-sm text-alerta">{avisoVoz}</p>
         )}
@@ -522,7 +588,11 @@ export default function Contar() {
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-sm text-tenue">
-                {parcial ? (
+                {escuchando ? (
+                  <span className="font-medium text-acento">
+                    {parcial ? <span className="text-white">{parcial}…</span> : 'Escuchando… habla ahora'}
+                  </span>
+                ) : parcial ? (
                   <span className="text-white">{parcial}…</span>
                 ) : siguienteSinContar ? (
                   <>
@@ -551,11 +621,13 @@ export default function Contar() {
             <button
               className="microfono bg-acento text-black disabled:opacity-40"
               data-escuchando={escuchando}
-              disabled={!vozDisponible()}
-              onPointerDown={iniciarEscucha}
-              onPointerUp={terminarEscucha}
-              onPointerLeave={terminarEscucha}
-              aria-label="Mantén presionado para dictar"
+              // Ya NO se cancela en onPointerLeave: al sostener el boton en una
+              // tablet el dedo se mueve unos pixeles y salia del elemento,
+              // matando la captura a media frase.
+              onPointerDown={alPresionarMicrofono}
+              onPointerUp={alSoltarMicrofono}
+              onPointerCancel={terminarEscucha}
+              aria-label={escuchando ? 'Escuchando, toca para terminar' : 'Toca o mantén presionado para dictar'}
             >
               <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                 <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Z" />

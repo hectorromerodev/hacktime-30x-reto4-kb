@@ -166,9 +166,17 @@ Mantén presionado el botón verde grande y di, por ejemplo:
 - *"quinientos gramos de mantequilla"* → se guarda como **0,5 kg** (conversión visible)
 - *"una caja y tres unidades de gaseosa"*
 
+El botón funciona de dos maneras: **tócalo** (queda escuchando hasta que termines la frase)
+o **mantenlo presionado** mientras hablas. Mientras escucha muestra *"Escuchando… habla
+ahora"* y la transcripción en vivo.
+
+> **Usa Chrome o Edge.** Es donde el reconocimiento de voz del navegador funciona de forma
+> confiable. **En Safari el botón responde pero el reconocimiento falla o no devuelve nada**:
+> su implementación de la Web Speech API es parcial. La app lo detecta y avisa; el teclado y
+> la búsqueda funcionan igual en todos los navegadores.
+>
 > **Requiere red.** El navegador no tiene reconocimiento de voz offline: Chrome envía el
 > audio a servidores de Google. Sin señal el micrófono se desactiva solo y avisa.
-> La captura por teclado y búsqueda sigue funcionando al 100%.
 > Ver [limitaciones declaradas](#8-limitaciones-declaradas).
 
 ### 2.5 Cámara

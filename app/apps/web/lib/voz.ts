@@ -61,6 +61,41 @@ export function vozDisponible(): boolean {
 }
 
 /**
+ * Pide permiso de micrófono por adelantado.
+ *
+ * `SpeechRecognition.start()` también lo pide, pero si falla solo devuelve
+ * `not-allowed` sin distinguir "el usuario dijo que no" de "no hay micrófono"
+ * de "el navegador lo bloqueó por política". Pedirlo aparte permite dar un
+ * mensaje que diga qué hacer, en vez de un "no se pudo" inútil.
+ */
+export async function pedirPermisoMicrofono(): Promise<
+  { ok: true } | { ok: false; motivo: string }
+> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return { ok: false, motivo: 'Este navegador no da acceso al micrófono. Usa el teclado.' };
+  }
+  try {
+    const flujo = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Solo se queria el permiso: el reconocedor abre su propio flujo.
+    flujo.getTracks().forEach((t) => t.stop());
+    return { ok: true };
+  } catch (e) {
+    const err = e as { name?: string };
+    if (err.name === 'NotAllowedError') {
+      return {
+        ok: false,
+        motivo:
+          'El micrófono está bloqueado. Tócalo en el candado de la barra de direcciones y permite el acceso.',
+      };
+    }
+    if (err.name === 'NotFoundError') {
+      return { ok: false, motivo: 'No se detectó ningún micrófono en el dispositivo.' };
+    }
+    return { ok: false, motivo: 'No se pudo abrir el micrófono. Usa el teclado.' };
+  }
+}
+
+/**
  * @returns una funcion para detener la escucha (soltar el boton).
  */
 export function escuchar(
@@ -68,10 +103,13 @@ export function escuchar(
   alTerminar: (r: ResultadoVoz) => void,
   alParcial?: (texto: string) => void,
   alError?: (mensaje: string) => void,
+  /** Se invoca cuando el reconocedor deja de escuchar, por la razón que sea. */
+  alFinalizar?: () => void,
 ): () => void {
   const Ctor = constructor();
   if (!Ctor) {
     alError?.('Este navegador no reconoce voz. Usa el teclado.');
+    alFinalizar?.();
     return () => {};
   }
 
@@ -105,20 +143,29 @@ export function escuchar(
   };
 
   rec.onerror = (e) => {
-    if (e.error === 'no-speech') alError?.('No se escucho nada. Intenta otra vez.');
-    else if (e.error === 'not-allowed') alError?.('Falta permiso de microfono.');
-    else if (e.error === 'network') alError?.('Sin red: la voz no esta disponible. Usa el teclado.');
+    // `aborted` es lo que devuelve el navegador cuando nosotros mismos
+    // llamamos a stop(): no es un fallo y no debe alarmar al contador.
+    if (e.error === 'aborted') return;
+    if (e.error === 'no-speech') alError?.('No se escuchó nada. Mantén presionado mientras hablas.');
+    else if (e.error === 'not-allowed')
+      alError?.('El micrófono está bloqueado. Permítelo en el candado de la barra de direcciones.');
+    else if (e.error === 'network')
+      alError?.('Sin red la voz no está disponible. Usa el teclado.');
+    else if (e.error === 'audio-capture')
+      alError?.('No se detectó micrófono en el dispositivo.');
     else alError?.('No se pudo capturar la voz. Usa el teclado.');
   };
 
   rec.onend = () => {
     if (!entregado) alParcial?.('');
+    alFinalizar?.();
   };
 
   try {
     rec.start();
   } catch {
-    alError?.('No se pudo iniciar el microfono.');
+    alError?.('No se pudo iniciar el micrófono.');
+    alFinalizar?.();
   }
 
   return () => {
