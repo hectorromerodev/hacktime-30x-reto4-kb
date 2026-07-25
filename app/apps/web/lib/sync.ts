@@ -22,6 +22,38 @@ const TAMANO_LOTE = 50;
 
 let sincronizando = false;
 
+/**
+ * Estado real de la conexión con el servidor.
+ *
+ * `navigator.onLine` solo dice si la tablet tiene una interfaz de red activa:
+ * responde `true` estando conectada a un wifi de bodega que no llega a
+ * ninguna parte. Mostrar "En línea" ahí sería mentirle al contador justo
+ * cuando más importa. Este estado se deduce de si las sincronizaciones de
+ * verdad llegan.
+ */
+export type EstadoConexion = 'EN_LINEA' | 'SIN_RED' | 'SERVIDOR_INALCANZABLE';
+
+let ultimoIntentoFallo = false;
+const oyentes = new Set<(e: EstadoConexion) => void>();
+
+export function estadoConexion(): EstadoConexion {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return 'SIN_RED';
+  return ultimoIntentoFallo ? 'SERVIDOR_INALCANZABLE' : 'EN_LINEA';
+}
+
+function marcarConexion(fallo: boolean) {
+  if (ultimoIntentoFallo === fallo) return;
+  ultimoIntentoFallo = fallo;
+  const e = estadoConexion();
+  oyentes.forEach((f) => f(e));
+}
+
+/** Se notifica cada vez que cambia el estado de conexión. */
+export function alCambiarConexion(f: (e: EstadoConexion) => void): () => void {
+  oyentes.add(f);
+  return () => oyentes.delete(f);
+}
+
 /** Guarda la captura localmente y la encola. La UI no espera a la red. */
 export async function capturar(captura: CapturaLocal) {
   await db.transaction('rw', db.capturas, db.cola, async () => {
@@ -75,8 +107,10 @@ export async function sincronizar(conteoId: string): Promise<boolean> {
       } catch {
         // Sin red o servidor caido: se queda en la cola y se reintenta luego.
         await db.cola.bulkPut(lote.map((e) => ({ ...e, intentos: e.intentos + 1 })));
+        marcarConexion(true);
         return false;
       }
+      marcarConexion(false);
 
       // Aceptadas y duplicadas salen de la cola por igual: en ambos casos el
       // servidor ya las tiene. Tratar "duplicada" como error dejaria la cola

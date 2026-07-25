@@ -32,7 +32,14 @@ import {
 } from '@conteo/core';
 import { api, type Usuario } from '@/lib/api';
 import { db, guardarMeta, type ArticuloLocal, type CapturaLocal } from '@/lib/db';
-import { capturar, arrancarSincronizacion, pendientes } from '@/lib/sync';
+import {
+  capturar,
+  arrancarSincronizacion,
+  pendientes,
+  estadoConexion,
+  alCambiarConexion,
+  type EstadoConexion,
+} from '@/lib/sync';
 import { escuchar, vozDisponible, type ResultadoVoz } from '@/lib/voz';
 import { EscanerCodigo } from '@/components/EscanerCodigo';
 
@@ -52,8 +59,9 @@ export default function Contar() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
-  const [enLinea, setEnLinea] = useState(true);
+  const [conexion, setConexion] = useState<EstadoConexion>('EN_LINEA');
   const [porEnviar, setPorEnviar] = useState(0);
+  const enLinea = conexion === 'EN_LINEA';
   const [codigos, setCodigos] = useState<Map<string, string>>(new Map());
 
   const articulos = useLiveQuery(() => db.articulos.orderBy('orden').toArray(), [], []);
@@ -138,13 +146,18 @@ export default function Contar() {
 
   useEffect(() => {
     const parar = arrancarSincronizacion(conteoId);
-    const marcar = () => setEnLinea(navigator.onLine);
+    const marcar = () => setConexion(estadoConexion());
     marcar();
+    const dejarDeOir = alCambiarConexion(setConexion);
     window.addEventListener('online', marcar);
     window.addEventListener('offline', marcar);
-    const t = setInterval(async () => setPorEnviar(await pendientes(conteoId)), 1200);
+    const t = setInterval(async () => {
+      setPorEnviar(await pendientes(conteoId));
+      marcar();
+    }, 1200);
     return () => {
       parar();
+      dejarDeOir();
       window.removeEventListener('online', marcar);
       window.removeEventListener('offline', marcar);
       clearInterval(t);
@@ -208,7 +221,10 @@ export default function Contar() {
 
   function iniciarEscucha() {
     if (!indice) return;
-    if (!enLinea) {
+    // La voz depende de los servidores del reconocedor, no de nuestra API:
+    // con el servidor caido pero con internet, sigue funcionando. Por eso
+    // aqui se mira navigator.onLine y no el estado de sincronizacion.
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setAvisoVoz('Sin red la voz no está disponible. Usa el teclado.');
       return;
     }
@@ -312,12 +328,26 @@ export default function Contar() {
           </button>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {/* Se distingue "sin red" de "el servidor no responde": para el
+              contador el efecto es el mismo (sigue contando), pero para quien
+              soporta el punto de venta no lo es en absoluto. */}
           <span
             className={`rounded-full px-3 py-1 text-xs font-medium ${
               enLinea ? 'bg-acento/20 text-acento' : 'bg-alerta/20 text-alerta'
             }`}
+            title={
+              conexion === 'SERVIDOR_INALCANZABLE'
+                ? 'Hay red, pero el servidor no responde. Lo capturado se guarda y se envía solo cuando vuelva.'
+                : conexion === 'SIN_RED'
+                  ? 'Sin conexión. Lo capturado se guarda en la tablet y se envía solo al recuperar señal.'
+                  : 'Todo sincronizado con el servidor.'
+            }
           >
-            {enLinea ? 'En línea' : 'Sin red'}
+            {conexion === 'EN_LINEA'
+              ? 'En línea'
+              : conexion === 'SIN_RED'
+                ? 'Sin red'
+                : 'Servidor no responde'}
             {porEnviar > 0 && ` · ${porEnviar} por enviar`}
           </span>
           {usuario?.rol === 'LIDER' && (
