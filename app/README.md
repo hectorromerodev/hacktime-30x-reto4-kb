@@ -228,6 +228,11 @@ Latencia media por consulta: 0.10 ms
 Precisión del auto-aceptado: 99.8% sobre 3517 casos
 ```
 
+Las tres tasas son deterministas — el fixture y el algoritmo no tienen azar, así que salen
+idénticas en cualquier máquina. La latencia sí depende del equipo: 0.10 ms en el de
+referencia, 0.28–0.35 ms en un portátil bajo WSL2 con Node 22. Si la tuya sale distinta, es
+lo esperado; lo que no debería moverse es el acierto.
+
 ---
 
 ## 3. Variables de entorno

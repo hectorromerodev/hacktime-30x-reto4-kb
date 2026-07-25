@@ -1,43 +1,40 @@
-# Questions to ask — Reto 4 (WhatsApp group / lives / mentorías)
+# Questions for Colsubsidio — final status
 
-**Channel:** the per-reto **WhatsApp support group** is the official Q&A channel for the rest of the week (confirmed in the explicación live); YouTube comments are also monitored during lives.
+**Closed 2026-07-25.** The lives are over and the open items below never got an answer. This is kept
+as the record of what we asked, what we got, and what we decided on our own when the answer never
+came.
 
-Pruned 2026-07-22 against the explicación live (`lives/2026-07-22-explicacion-reto4-sVcLdIF0bjo.md`) — everything already answered moved to the log at the bottom. Ready to paste, in Spanish.
+**Channel used:** the per-reto WhatsApp support group (the official Q&A channel) + YouTube comments
+during lives.
 
-## 🥇 Ask first (datos — build depends on these)
+> **One questionnaire *was* answered** — the one about the physical reception process (how product
+> arrives before it is ever counted). It landed too late to change the build and it covers the
+> adjacent event rather than the count itself, so it lives in its own document:
+> [`proceso-recepcion-mercancia.md`](proceso-recepcion-mercancia.md).
 
-1. **Sobre el Excel de "bodegas y stock": ¿es una foto de un solo corte de inventario, o nos pueden compartir varios cortes históricos (meses anteriores) de una misma bodega? Si no hay histórico, ¿es válido que generemos datos sintéticos para demostrar la detección de anomalías?**
-   *Why: anomaly detection "según el patrón de esa bodega" needs history; the shared Excel looks like a single snapshot.*
-2. **¿Nos pueden compartir una foto real (o ejemplo) del formato en papel ya diligenciado a mano?** — en el live quedaron de averiguar si se podía.
-   *Why: it's the exact input we're replacing; also great demo material. They said "a ver si podemos obtener un ejemplo" — chase it.*
-3. **En el formato que genera el sistema, ¿la cantidad se registra siempre en la unidad de medida del catálogo, o a veces cuentan en otra presentación (cajas, bultos) y alguien convierte después? ¿Existen factores de conversión en el sistema?**
-   *Why: unit disambiguation is a scored requirement; conversions are where it breaks.*
-4. **¿En la toma física registran lote y fecha de vencimiento (medicamentos, congelados), o solo cantidades?**
-   *Why: doubles the capture payload if yes; catalog includes meds and frozen goods.*
+## Never answered — and what we decided instead
 
-## 🥈 Output & devices
+Each of these shipped as a stated decision, not as a gap. Where the answer would have changed the
+build, the decision is declared in `app/README.md` §8 (Limitaciones declaradas).
 
-5. **Para dejar el dato "listo para el ERP" sin integración real: ¿qué estructura de archivo le serviría al líder de costos para cargarlo — las mismas columnas del formato que genera el sistema (¿Oracle Simphony / My Inventory?)? ¿Nos pueden confirmar el nombre del sistema?**
-   *Why: the export shape = "implementable" in judges' eyes; the live gave three garbled system names and an inconclusive answer on columns.*
-6. **Ya que celulares personales no están permitidos pero tablets sí: ¿qué tablets usarían (Android/iPad, corporativas compartidas por bodega)? ¿Tienen micrófono utilizable con guantes/manos ocupadas?**
-   *Why: device target for the build; push-to-talk vs hands-free design.*
-7. **¿Qué tanto ruido ambiente hay durante la toma (motores de refrigeración, cocinas, zonas del parque)?**
-   *Why: voice capture viability; never raised in the live.*
+| # | What we asked | Decision taken |
+|---|---|---|
+| 1 | ¿El Excel es un corte único o hay histórico de meses anteriores? ¿Vale generar datos sintéticos? | Confirmed single cut. **No synthetic history was used.** The anomaly rules lean on the cut's order of magnitude instead of on trends — honest, and it still catches the 9→90. |
+| 2 | ¿Una foto real del formato en papel diligenciado? | Never delivered. Not needed: the input xlsx is officially *"el mismo formato que el personal digita"*. |
+| 3 | ¿La cantidad se registra siempre en la unidad del catálogo, o cuentan en cajas/bultos y alguien convierte? | Unanswered. The parser converts grams→kilos and **shows** the conversion; an impossible unit blocks the save rather than guessing a factor. |
+| 4 | ¿Registran lote y fecha de vencimiento (medicamentos, congelados)? | Unanswered. Left out of scope; it would double the capture payload. |
+| 5 | ¿Qué estructura de archivo le sirve al líder de costos? ¿Nombre exacto del sistema? | Asked twice, answer garbled both times. Export mirrors the input file's columns + flat CSV fallback. |
+| 6 | ¿Qué tablets usan? ¿Micrófono usable con guantes? | Unanswered. PWA over HTTPS on any modern tablet; shared-device auth = user + 4-digit PIN. |
+| 7 | ¿Cuánto ruido ambiente hay en las bodegas? | Unanswered — **this is why voice is optional**. Keyboard, search and scan work at 100% without it. |
+| 8 | ¿Criterios y pesos específicos del reto Hotelería? | Never published (Seguros got theirs on air, Hotelería didn't). Built against the general four criteria. |
+| 9 | ¿Restricciones para procesar inventario con APIs de IA en la nube? | Unanswered. Sidestepped: matcher, parser and rules are dependency-free TypeScript running on the device — inventory data doesn't leave it for a third-party model. |
+| 10 | ¿Dos personas en la misma bodega se reparten por grupos de familia? | Answer was incoherent on air. Assumed a family-group split and declared the assumption; groups are derived by keyword. |
 
-## 🥉 Evaluación y restricciones
-
-8. **¿Cuáles son los criterios de evaluación (y pesos) específicos para el reto de Hotelería? Para Seguros los mencionaron en el live, para Hotelería no alcanzaron.**
-   *Why: one podium, 4 retos — we need to know what moves the needle.*
-9. **¿Hay restricciones para procesar datos de inventario con APIs de IA en la nube (Gemini, Claude, etc.), pensando en la implementación real con Colsubsidio?**
-   *Why: winners go to product implementation; a compliance-blocked stack kills viability points.*
-10. *(nice-to-have)* **Cuando dos personas cuentan la misma bodega, ¿se dividen por grupos de familia o cada una cuenta todo (doble conteo)?**
-    *Why: asked in the live, answer came out incoherent; safe to assume family-group split, but a clean answer helps.*
-
-## ✅ Answered log (don't re-ask)
+## Answered — the ones that shaped the build
 
 | Question | Answer | Source |
 |---|---|---|
-| Scale? | Pilot = **Piscilago only**: ~48 bodegas, ~1,400+ artículos c/u; hotels are future rollout | explicación live |
+| Scale? | Pilot = **Piscilago only**: ~48 bodegas. *(The live's "1,400+ artículos c/u" was later corrected by the real file: 1,405 rows total, 936 distinct articles, 56–344 per bodega.)* | explicación live + `datos/` profile |
 | Blind count? | **Sí, deliberadamente ciega** (auditoría) — never show expected qty mid-count | explicación live |
 | Connectivity? | **Not guaranteed** — not all bodegas have corporate network → offline needed | explicación live |
 | Barcodes? | **Not universal** — some products lack unique ID in the app → fuzzy matching required | explicación live |
@@ -48,12 +45,13 @@ Pruned 2026-07-22 against the explicación live (`lives/2026-07-22-explicacion-r
 | Recipes? | Recipe/preparation tracking **out of scope** (confirmed twice) | explicación live |
 | Anomaly threshold? | **Left to the team** — no mandated model/threshold; negative balances & weird decimals cited as known dirt | explicación live |
 | Catalog breadth? | Not just food: pool chemicals, animal supplies, meds, frozen, menaje — all counted | explicación live |
-| Dataset? | Excel example under Recursos → "bodegas y stock" + tutorial, on innovacion.colsubsidio.com | explicación live |
+| Dataset? | Excel under Recursos → "bodegas y stock" + tutorial, on innovacion.colsubsidio.com | explicación live |
 | Deadline & deliverables? | Sun 07-26 11:30am COL; public repo (created ≥07-22, no commits after) + demo link + 2-min video | apertura live |
 | Judging (general)? | Impact, smart AI use, technical execution + viability at Colsubsidio scale, pitch; hardware disadvantaged | apertura live |
+| Pitch format? | 2 min video (problem, solution, demo, impact); finalists get 2 min + 3 min jury Q&A | apertura + pitch charla |
 
-## Log of asks
+## The lesson worth keeping
 
-| Date | Where | Questions asked | Answered? → logged where |
-|---|---|---|---|
-| | | | |
+Nine of the ten questions we most wanted answered never got an answer. The build survived because
+every unanswered question became a **declared decision** instead of a silent assumption — which is
+also the thing a jury that knows the process can actually check.

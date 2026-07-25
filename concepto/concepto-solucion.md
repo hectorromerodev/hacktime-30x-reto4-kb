@@ -269,6 +269,12 @@ restricción por unidad), no solo que funciona.
 - No mostramos la cantidad esperada durante el conteo, aunque técnicamente podríamos.
 - No entrenamos un modelo propio de anomalías: reglas explicables sobre datos reales, que el auditor
   entiende y puede discutir.
+- **No hacemos recepción de mercancía** — y no por desconocerla: Colsubsidio nos describió el
+  proceso completo (proveedor → almacén principal → pedido interno de cada bodega; llega en
+  **remisión o factura, en papel**, recibida por el almacenista o el auxiliar). Está en
+  [`research/proceso-recepcion-mercancia.md`](../research/proceso-recepcion-mercancia.md). Es el
+  mismo problema — papel que alguien digita después — y el mismo núcleo lo resolvería, pero el reto
+  pide la **toma de inventarios**. Es el primer punto del roadmap, no del alcance.
 
 ## 10. Riesgos y cómo los tapamos
 
