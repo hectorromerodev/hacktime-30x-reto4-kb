@@ -2,6 +2,8 @@
 
 Captura inteligente en la toma física de inventarios — **Reto 4 · Hotelería**, Hackathon Colsubsidio × 30X.
 
+### ▶ Demo en vivo: **https://conteo-inventarios.vercel.app** · Ana Gómez / `1111`
+
 > Hoy: alguien cuenta en papel → otra persona lo digita en el sistema (**~2 días por ciclo**) → una tercera revisa.
 > Ahí nacen los errores: "9 cajas" registrado como 90, un 3 que se lee como 5, gramos confundidos con kilos.
 >
