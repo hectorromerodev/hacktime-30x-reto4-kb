@@ -34,6 +34,8 @@ interface FilaReporte {
   sistema: number;
   contado: number | null;
   contadores: string[];
+  /** Cuánto reportó cada persona. Es lo que el líder necesita para decidir. */
+  porContador: { nombre: string; cantidad: number }[];
   metodos: string[];
   anomalias: string[];
   motivos: string[];
@@ -87,6 +89,18 @@ async function armarReporte(conteoId: string) {
 
   const filas: FilaReporte[] = stocks.map((s) => {
     const propias = porArticulo.get(s.articulo.id) ?? [];
+    const enConflicto = propias.some((c) => c.enConflicto);
+
+    // Cuánto reportó cada persona por separado.
+    const acumulado = new Map<string, number>();
+    for (const c of propias) {
+      acumulado.set(
+        c.usuario.nombre,
+        (acumulado.get(c.usuario.nombre) ?? 0) + aNumero(c.cantidad),
+      );
+    }
+    const porContador = [...acumulado].map(([nombre, cantidad]) => ({ nombre, cantidad }));
+
     return {
       nrArticulo: s.articulo.nrArticulo,
       nombre: s.articulo.nombre,
@@ -94,17 +108,30 @@ async function armarReporte(conteoId: string) {
       familia: s.articulo.familia,
       orden: s.orden,
       sistema: aNumero(s.sd),
-      // Sin capturas el valor es null, NO cero: "cero" es una afirmacion
-      // (esta agotado) y "vacio" es una ausencia (nadie lo conto todavia).
-      // Confundirlos descuadraria el inventario del lider de costos.
-      contado: propias.length
-        ? propias.reduce((acc, c) => acc + aNumero(c.cantidad), 0)
-        : null,
-      contadores: [...new Set(propias.map((c) => c.usuario.nombre))],
+      // Tres estados distintos, y confundirlos descuadraria el inventario:
+      //
+      //  · sin capturas      -> null. "Vacio" es una ausencia (nadie lo conto),
+      //                         y NO es lo mismo que cero, que es una
+      //                         afirmacion (esta agotado).
+      //  · en conflicto      -> null. Dos personas reportaron cantidades
+      //                         distintas para el mismo articulo y NADIE ha
+      //                         decidido si fue un recuento (reemplaza) o dos
+      //                         ubicaciones (suma). Sumarlas seria inventar el
+      //                         dato: exactamente el error que este producto
+      //                         existe para eliminar. Queda sin valor hasta que
+      //                         el lider resuelva, y las cifras de cada persona
+      //                         viajan en `porContador` para que pueda hacerlo.
+      //  · normal            -> suma de sus capturas, que es lo correcto cuando
+      //                         una misma persona cuenta en varias ubicaciones.
+      contado: !propias.length || enConflicto
+        ? null
+        : propias.reduce((acc, c) => acc + aNumero(c.cantidad), 0),
+      contadores: [...acumulado.keys()],
+      porContador,
       metodos: [...new Set(propias.map((c) => c.metodo))],
       anomalias: [...new Set(propias.flatMap((c) => (c.anomalias as string[]) ?? []))],
       motivos: propias.map((c) => c.motivoConfirmacion).filter(Boolean) as string[],
-      enConflicto: propias.some((c) => c.enConflicto),
+      enConflicto,
     };
   });
 
@@ -120,7 +147,14 @@ export async function rutasExportacion(app: FastifyInstance) {
     if (!datos) return reply.code(404).send({ error: 'Conteo no encontrado.' });
 
     const { filas } = datos;
+    // Tres estados que NO se solapan, y que suman el total del catálogo:
+    //   resuelto     -> tiene cantidad definitiva
+    //   en conflicto -> se contó, pero falta que el líder decida
+    //   sin contar   -> nadie lo tocó
+    // Meter los conflictos en "sin contar" seria mentir: si se contaron.
     const contadas = filas.filter((f) => f.contado !== null);
+    const enConflicto = filas.filter((f) => f.enConflicto);
+    const sinContar = filas.filter((f) => f.contado === null && !f.enConflicto);
     const conDiferencia = contadas.filter((f) => f.contado !== f.sistema);
 
     return {
@@ -130,13 +164,24 @@ export async function rutasExportacion(app: FastifyInstance) {
       resumen: {
         articulosCatalogo: filas.length,
         contados: contadas.length,
-        sinContar: filas.length - contadas.length,
+        sinContar: sinContar.length,
         conDiferencia: conDiferencia.length,
         exactitud: contadas.length
           ? Number((((contadas.length - conDiferencia.length) / contadas.length) * 100).toFixed(1))
           : 0,
-        enConflicto: filas.filter((f) => f.enConflicto).length,
+        enConflicto: enConflicto.length,
       },
+      // Los conflictos van aparte y primero: son lo unico que el lider TIENE
+      // que resolver antes de exportar, porque sin decision no hay cantidad.
+      conflictos: filas
+        .filter((f) => f.enConflicto)
+        .map((f) => ({
+          nrArticulo: f.nrArticulo,
+          articulo: f.nombre.trim(),
+          unidad: f.unidad,
+          sistema: f.sistema,
+          porContador: f.porContador,
+        })),
       diferencias: conDiferencia
         .map((f) => ({
           nrArticulo: f.nrArticulo,
@@ -146,6 +191,7 @@ export async function rutasExportacion(app: FastifyInstance) {
           contado: f.contado,
           diferencia: Number(((f.contado ?? 0) - f.sistema).toFixed(3)),
           contadores: f.contadores,
+          porContador: f.porContador,
           anomalias: f.anomalias,
           enConflicto: f.enConflicto,
         }))
@@ -225,6 +271,7 @@ export async function rutasExportacion(app: FastifyInstance) {
       { header: 'Dif %', key: 'pct', width: 10 },
       { header: 'Estado', key: 'est', width: 16 },
       { header: 'Contadores', key: 'quien', width: 26 },
+      { header: 'Reportado por cada uno', key: 'detalle', width: 34 },
       { header: 'Anomalías', key: 'anom', width: 26 },
       { header: 'Motivo declarado', key: 'mot', width: 30 },
     ];
@@ -242,6 +289,12 @@ export async function rutasExportacion(app: FastifyInstance) {
           dif === null || f.sistema === 0 ? '' : Number(((dif / f.sistema) * 100).toFixed(1)),
         est: estado(f, dif),
         quien: f.contadores.join(', '),
+        // Solo tiene sentido detallar cuando hay mas de una persona: es lo que
+        // el lider necesita para decidir si fue recuento o doble ubicacion.
+        detalle:
+          f.porContador.length > 1
+            ? f.porContador.map((p) => `${p.nombre}: ${p.cantidad}`).join(' | ')
+            : '',
         anom: f.anomalias.join(', '),
         mot: f.motivos.join(' | '),
       });

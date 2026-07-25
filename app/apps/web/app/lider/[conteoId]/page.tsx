@@ -25,10 +25,19 @@ interface Diferencia {
   enConflicto: boolean;
 }
 
+interface Conflicto {
+  nrArticulo: string | null;
+  articulo: string;
+  unidad: string;
+  sistema: number;
+  porContador: { nombre: string; cantidad: number }[];
+}
+
 interface Reporte {
   bodega: string;
   periodo: string;
   estado: string;
+  conflictos: Conflicto[];
   resumen: {
     articulosCatalogo: number;
     contados: number;
@@ -69,9 +78,13 @@ export default function Lider() {
       </p>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Dato valor={resumen.contados} etiqueta="contados" />
+        <Dato valor={resumen.contados} etiqueta="resueltos" />
         <Dato valor={resumen.sinContar} etiqueta="sin contar" alerta={resumen.sinContar > 0} />
-        <Dato valor={resumen.conDiferencia} etiqueta="con diferencia" />
+        <Dato
+          valor={resumen.enConflicto}
+          etiqueta="por resolver"
+          alerta={resumen.enConflicto > 0}
+        />
         <Dato valor={`${resumen.exactitud}%`} etiqueta="exactitud" />
       </div>
 
@@ -80,10 +93,31 @@ export default function Lider() {
           <p className="text-sm font-medium text-alerta">
             {resumen.enConflicto} artículo(s) contados por más de una persona
           </p>
-          <p className="mt-1 text-sm text-tenue">
-            No se sumaron automáticamente. Revisa si fue un recuento (reemplaza) o una ubicación
-            distinta del mismo producto (suma).
+          <p className="mt-1 mb-3 text-sm text-tenue">
+            <strong className="text-white">Quedan sin cantidad</strong> hasta que decidas. No se
+            suman solos: dos personas contando lo mismo puede ser un recuento (reemplaza) o dos
+            ubicaciones del mismo producto (suma), y adivinar cuál es sería inventar el dato.
           </p>
+          <ul className="grid gap-2">
+            {(reporte.conflictos ?? []).map((c) => (
+              <li key={c.articulo} className="rounded-xl bg-superficie-alta p-3 text-sm">
+                <p className="font-medium">{c.articulo}</p>
+                <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-tenue">
+                  {c.porContador.map((p) => (
+                    <span key={p.nombre}>
+                      {p.nombre}:{' '}
+                      <strong className="tabular-nums text-white">
+                        {p.cantidad.toLocaleString('es-CO')}
+                      </strong>
+                    </span>
+                  ))}
+                  <span className="text-tenue">
+                    · sistema: {c.sistema.toLocaleString('es-CO')}
+                  </span>
+                </p>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
