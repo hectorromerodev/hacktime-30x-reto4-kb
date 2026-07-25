@@ -74,10 +74,22 @@ export function ordenDeMagnitud(valor: number): number | null {
   return Math.floor(Math.log10(abs));
 }
 
-/** Calcula el `exp10` que se envía al dispositivo. Se usa en el servidor. */
+/**
+ * Calcula el `exp10` que se envía al dispositivo. Se usa en el servidor.
+ *
+ * Se acota por abajo en 0, igual que `ordenDeMagnitud`, por dos razones:
+ *
+ *  1. **Consistencia.** Sin el tope, un artículo con stock 0,5 kg publicaba
+ *     exp10 = -1, mientras que contar 0,5 da orden 0. La resta daba 1 y R8
+ *     disparaba una alarma falsa cada vez que alguien contaba BIEN un artículo
+ *     de stock fraccionario — y el archivo real trae 325 filas con decimales.
+ *  2. **Privacidad.** Un exp10 negativo delataría "esto pesa menos de un kilo",
+ *     un rango mucho más estrecho que los demás cubos. Con el tope, todo lo
+ *     que está por debajo de 10 comparte un solo cubo.
+ */
 export function calcularExp10(sd: number): number | null {
   if (!Number.isFinite(sd) || sd <= 0) return null;
-  return Math.floor(Math.log10(sd));
+  return Math.max(0, Math.floor(Math.log10(sd)));
 }
 
 export function evaluarAnomalias(ctx: ContextoAnomalia): Anomalia[] {

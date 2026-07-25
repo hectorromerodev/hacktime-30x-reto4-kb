@@ -11,7 +11,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:estado": "prisma migrate status",
     "seed": "node --experimental-strip-types src/seed.ts",
-    "prepare:db": "prisma generate && prisma migrate deploy && node --experimental-strip-types src/seed.ts"
+    "prepare:db": "prisma generate && prisma migrate deploy && node --experimental-strip-types src/seed.ts",
+    "test": "node --experimental-strip-types --test src/conteoCiego.test.ts"
   },
   "dependencies": {
     "@conteo/core": "workspace:*",

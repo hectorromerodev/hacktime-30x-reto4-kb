@@ -7,7 +7,8 @@
     "build": "pnpm -r build",
     "dev": "pnpm --filter api dev & pnpm --filter web dev",
     "seed": "pnpm --filter api seed",
-    "test": "pnpm --filter core test"
+    "test": "pnpm --filter @conteo/core test",
+    "test:api": "pnpm --filter api test"
   },
   "devDependencies": {
     "typescript": "^5.7.3"
