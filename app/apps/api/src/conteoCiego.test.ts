@@ -251,6 +251,43 @@ describe('el conteo tambien es ciego ENTRE contadores', () => {
   });
 });
 
+describe('cerrar sesion', () => {
+  test('la cookie se borra con los MISMOS atributos con que se creo', async () => {
+    // Si no coinciden, el navegador ignora el borrado y el boton Salir no hace
+    // nada: una cookie NO segura no puede sobrescribir una segura.
+    const usuario = await prisma.usuario.findFirstOrThrow();
+
+    const login = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { usuarioId: usuario.id, pin: usuario.pin },
+    });
+    const alCrear = login.headers['set-cookie']!.toString();
+
+    const logout = await app.inject({ method: 'POST', url: '/auth/logout' });
+    const alBorrar = logout.headers['set-cookie']!.toString();
+
+    const tiene = (cookie: string, atributo: string) =>
+      cookie.toLowerCase().includes(atributo.toLowerCase());
+
+    for (const atributo of ['Path=/', 'HttpOnly', 'SameSite=Lax']) {
+      assert.equal(
+        tiene(alBorrar, atributo),
+        tiene(alCrear, atributo),
+        `el atributo ${atributo} no coincide entre crear y borrar`,
+      );
+    }
+    // `Secure` es el que rompia en produccion.
+    assert.equal(
+      tiene(alBorrar, 'Secure'),
+      tiene(alCrear, 'Secure'),
+      'Secure no coincide: el navegador descartaria el borrado',
+    );
+    // Y la cookie de borrado debe vencer de inmediato.
+    assert.ok(/max-age=0|expires=thu, 01 jan 1970/i.test(alBorrar));
+  });
+});
+
 describe('el reporte del lider SI muestra el sistema (el conteo ya termino)', () => {
   test('ahi la comparacion es el objetivo, no una fuga', async () => {
     const res = await app.inject({
