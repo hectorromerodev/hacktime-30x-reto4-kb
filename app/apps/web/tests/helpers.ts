@@ -17,64 +17,27 @@ export const PIN_ANA = ['1', '1', '1', '1'];
  * Debe llamarse antes de `page.goto('/')`.
  */
 export async function configurarApi(page: Page) {
-  // Orden importa: el último route registrado gana en Playwright.
-  // La ruta comodín va primero, las específicas después.
-
-  // Comodín: redirige el resto de /api al servicio real.
+  // Un solo interceptor: reenvía TODAS las llamadas /api/** al servicio API real,
+  // que ya viene seedeado con los 4 usuarios demo, las 54 bodegas y el catálogo.
+  // Nada se mockea — el login, la lista de bodegas y el conteo salen del backend
+  // de verdad, que es justo lo que un E2E debe ejercitar.
   await page.route('**/api/**', async (route) => {
     const url = new URL(route.request().url());
     url.host = 'api:4000';
     url.protocol = 'http';
+    url.pathname = url.pathname.replace(/^\/api/, ''); // Caddy usa handle_path /api/*: strip del prefijo
     const response = await route.fetch({ url: url.toString() });
-    await route.fulfill({ response });
-  });
 
-  // Mock de /auth/yo: siempre "no autenticado" al inicio.
-  await page.route('**/api/auth/yo', async (route) => {
-    await route.fulfill({ status: 401, contentType: 'application/json', body: '{}' });
-  });
-
-  // Mock de /usuarios: devuelve la lista esperada sin tocar la red.
-  await page.route('**/api/usuarios', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        usuarios: [
-          { id: '1', nombre: 'Ana Gómez', rol: 'CONTADOR' },
-          { id: '2', nombre: 'Luis Ramírez', rol: 'CONTADOR' },
-          { id: '3', nombre: 'Sandra Peña', rol: 'CONTADOR' },
-          { id: '4', nombre: 'Bibiana Torres', rol: 'LIDER' },
-        ],
-      }),
-    });
-  });
-
-  // Mock de /auth/login: PIN 1111 para Ana, 2222 para Luis, etc.
-  const pines: Record<string, string> = {
-    '1': '1111', '2': '2222', '3': '3333', '4': '9999',
-  };
-  await page.route('**/api/auth/login', async (route) => {
-    const body = JSON.parse(route.request().postData() ?? '{}');
-    const id = body.usuarioId;
-    const pinEsperado = pines[id] ?? '9999';
-    if (body.pin === pinEsperado) {
-      const rol = id === '4' ? 'LIDER' : 'CONTADOR';
-      const nombre = ['Ana Gómez', 'Luis Ramírez', 'Sandra Peña', 'Bibiana Torres'][Number(id) - 1];
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          usuario: { usuarioId: id, nombre, rol },
-        }),
-      });
-    } else {
-      await route.fulfill({
-        status: 401,
-        contentType: 'application/json',
-        body: JSON.stringify({ error: 'PIN incorrecto.' }),
-      });
+    // El backend marca la cookie de sesión como Secure (la imagen corre con
+    // NODE_ENV=production). Sobre http://web:3000 el navegador descarta las
+    // cookies Secure, así que la sesión no sobreviviría al login y todo lo
+    // autenticado (bodegas, catálogo) daría 401. Quitamos el flag sólo dentro
+    // del test para que el flujo real funcione sin HTTPS.
+    const headers = response.headers();
+    if (headers['set-cookie']) {
+      headers['set-cookie'] = headers['set-cookie'].replace(/;\s*Secure/gi, '');
     }
+    await route.fulfill({ response, headers });
   });
 }
 

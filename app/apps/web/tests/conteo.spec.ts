@@ -42,14 +42,14 @@ test.describe('Conteo', () => {
     await articulo.click();
 
     // Verificar que aparece en la zona de captura
-    await expect(page.getByText('Guardar y seguir')).toBeVisible();
+    await expect(page.getByText('Guardar')).toBeVisible();
 
     // Teclear cantidad
     await page.locator('.tecla').filter({ hasText: '5' }).click();
     await page.locator('.tecla').filter({ hasText: '0' }).click();
 
     // Guardar
-    await page.getByText('Guardar y seguir').click();
+    await page.getByText('Guardar').click();
 
     // Verificar que avanza al siguiente artículo (aviso de confirmación)
     await expect(page.getByText(/guardado|siguiente|Cancelar/)).toBeVisible({ timeout: 5_000 });
@@ -69,10 +69,10 @@ test.describe('Conteo', () => {
     await page.locator('.tecla').filter({ hasText: '0' }).click();
 
     // Intentar guardar
-    await page.getByText('Guardar y seguir').click();
+    await page.getByText('Guardar').click();
 
     // Debe aparecer el diálogo de verificación de anomalía
-    await expect(page.getByText(/Verificación de cantidad|fuera de la escala/)).toBeVisible({
+    await expect(page.getByText(/Verificación de cantidad|fuera de la escala/).first()).toBeVisible({
       timeout: 5_000,
     });
     await expect(page.getByText('Volver a teclear')).toBeVisible();
@@ -83,10 +83,10 @@ test.describe('Conteo', () => {
     await entrarABodega(page);
 
     const input = page.getByPlaceholder('Buscar artículo…');
-    await input.fill('HARINA');
+    await input.fill('AGUA');
 
-    // Debe mostrar artículos que contienen "HARINA" en lugar de toda la lista
-    const primera = page.getByText('HARINA').first();
+    // Debe mostrar artículos que contienen "AGUA" en lugar de toda la lista
+    const primera = page.getByText('AGUA').first();
     await expect(primera).toBeVisible({ timeout: 5_000 });
   });
 
@@ -108,7 +108,7 @@ test.describe('Conteo', () => {
     if (await articulo.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await articulo.click();
       await page.locator('.tecla').filter({ hasText: '1' }).click();
-      await page.getByText('Guardar y seguir').click();
+      await page.getByText('Guardar').click();
     }
 
     // Reconectar
