@@ -49,4 +49,9 @@ EXPOSE 4000
 # `migrate deploy` y no `db push`: solo aplica las migraciones versionadas que
 # estan en prisma/migrations, sin inferir cambios ni tocar nada que no este en
 # el historial. Es lo que corresponde en produccion.
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node --experimental-strip-types src/seed.ts && node --experimental-strip-types src/index.ts"]
+#
+# Se invoca el binario DIRECTO, no `pnpm exec`: pnpm revalida el lockfile antes
+# de ejecutar y, si algo no le cuadra, lanza un `pnpm install` completo dentro
+# del contenedor ya construido. En un host con 512 MB eso agota la memoria y el
+# arranque muere antes de abrir el puerto.
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node --experimental-strip-types src/seed.ts && node --experimental-strip-types src/index.ts"]
