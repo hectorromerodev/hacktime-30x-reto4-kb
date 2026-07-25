@@ -7,9 +7,11 @@
     "dev": "node --experimental-strip-types --watch src/index.ts",
     "start": "node --experimental-strip-types src/index.ts",
     "build": "prisma generate",
-    "db:push": "prisma db push --skip-generate",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:estado": "prisma migrate status",
     "seed": "node --experimental-strip-types src/seed.ts",
-    "prepare:db": "prisma generate && prisma db push --skip-generate && node --experimental-strip-types src/seed.ts"
+    "prepare:db": "prisma generate && prisma migrate deploy && node --experimental-strip-types src/seed.ts"
   },
   "dependencies": {
     "@conteo/core": "workspace:*",

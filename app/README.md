@@ -74,8 +74,9 @@ pnpm install
 ```bash
 cd apps/api
 export DATABASE_URL="postgresql://conteo:conteo_local_dev@localhost:5432/conteo?schema=public"
-pnpm exec prisma generate && pnpm exec prisma db push --skip-generate
-pnpm seed
+pnpm exec prisma generate
+pnpm migrate:deploy    # aplica las migraciones versionadas
+pnpm seed              # carga el Excel real
 pnpm dev
 ```
 
@@ -252,6 +253,25 @@ pnpm --filter api seed -- --reset  # recargar el catálogo desde el Excel
 
 El seed es **idempotente**: correrlo dos veces no duplica nada, así que reiniciar el
 contenedor es seguro. Con `--reset` sí vacía y recarga.
+
+### Migraciones de base de datos
+
+El esquema se versiona con migraciones de Prisma, en
+[`apps/api/prisma/migrations/`](apps/api/prisma/migrations/). No se usa `prisma db push`:
+`migrate deploy` aplica solo las migraciones que están en el historial, sin inferir cambios.
+
+```bash
+cd apps/api
+pnpm migrate:estado    # ¿qué migraciones faltan por aplicar?
+pnpm migrate:deploy    # aplicar pendientes (esto corre solo al arrancar el contenedor)
+pnpm migrate:dev --name lo_que_cambiaste   # crear una nueva tras editar schema.prisma
+```
+
+El contenedor de la API corre `prisma migrate deploy` en cada arranque, así que desplegar
+una versión nueva aplica sus migraciones automáticamente.
+
+> Si tu base local se creó antes con `db push`, no tiene historial y `migrate deploy` va a
+> rechazarla. Lo más rápido es recrearla: `docker compose down -v && docker compose up`.
 
 ---
 

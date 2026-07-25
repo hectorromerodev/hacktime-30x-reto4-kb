@@ -32,6 +32,10 @@ RUN apk add --no-cache openssl
 
 EXPOSE 4000
 
-# Al arrancar: sincroniza el esquema, siembra si hace falta (es idempotente,
-# no duplica en reinicios) y levanta la API.
-CMD ["sh", "-c", "pnpm exec prisma db push --skip-generate && node --experimental-strip-types src/seed.ts && node --experimental-strip-types src/index.ts"]
+# Al arrancar: aplica las migraciones pendientes, siembra si hace falta (el
+# seed es idempotente, no duplica en reinicios) y levanta la API.
+#
+# `migrate deploy` y no `db push`: solo aplica las migraciones versionadas que
+# estan en prisma/migrations, sin inferir cambios ni tocar nada que no este en
+# el historial. Es lo que corresponde en produccion.
+CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node --experimental-strip-types src/seed.ts && node --experimental-strip-types src/index.ts"]
