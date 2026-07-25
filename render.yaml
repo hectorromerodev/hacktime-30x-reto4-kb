@@ -1,0 +1,38 @@
+# Blueprint de Render para la API.
+#
+# Se despliega solo la API aquí; la web va en Vercel y le reenvía /api/* (ver
+# `apps/web/next.config.ts`), de modo que el navegador ve un único origen y la
+# cookie de sesión no se vuelve de terceros.
+#
+# La base de datos es Neon (Postgres 18), fuera de este blueprint: DATABASE_URL
+# se configura como variable de entorno en el panel de Render.
+#
+# Para usarlo: Render → New → Blueprint → apuntar a este repositorio.
+
+services:
+  - type: web
+    name: conteo-inventarios-api
+    runtime: docker
+    plan: free
+    region: oregon
+    # El contexto es la raiz del repositorio: la API depende de
+    # `packages/core` por enlace de workspace, y ademas el seed necesita
+    # `datos/BODEGAS Y STOCK.xlsx`, que vive fuera de `app/`.
+    dockerfilePath: ./app/apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /salud
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false # se pega a mano en el panel: es la cadena de Neon
+      - key: JWT_SECRET
+        generateValue: true
+      - key: API_PORT
+        value: 4000
+      - key: ORIGEN_WEB
+        # Origen del front. Con el rewrite de Vercel las llamadas llegan
+        # servidor-a-servidor y no pasan por CORS, pero queda declarado para
+        # el acceso directo a la API.
+        sync: false
+      - key: LOG_LEVEL
+        value: info

@@ -32,8 +32,11 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+      # Contexto = raiz del repo: el seed necesita datos/BODEGAS Y STOCK.xlsx,
+      # que vive fuera de app/. Asi la imagen queda autocontenida y se despliega
+      # igual en Render que en local, sin depender de un volumen montado.
+      context: ..
+      dockerfile: app/apps/api/Dockerfile
     restart: unless-stopped
     depends_on:
       postgres:
@@ -44,16 +47,13 @@ services:
       API_PORT: 4000
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       ORIGEN_WEB: ${ORIGEN_WEB:-https://localhost}
-    volumes:
-      # El seed lee el xlsx original del repo de investigacion.
-      - ../datos:/datos:ro
     expose:
       - '4000'
 
   web:
     build:
-      context: .
-      dockerfile: apps/web/Dockerfile
+      context: ..
+      dockerfile: app/apps/web/Dockerfile
       args:
         # Se hornea en el bundle del cliente: el navegador llama a /api del
         # mismo origen y Caddy lo enruta al servicio api.

@@ -22,6 +22,24 @@ const config: NextConfig = {
   // El chequeo de tipos SI corre en el build, a proposito: preferimos que
   // falle aqui y no en produccion.
   typescript: { ignoreBuildErrors: false },
+
+  /**
+   * Despliegue partido (web en Vercel, API en Render): se reenvia /api/* al
+   * origen de la API.
+   *
+   * No es una comodidad, es lo que hace viable la sesion. Con dominios
+   * distintos la cookie seria de terceros y habria que ponerla en
+   * SameSite=None — justo lo que los navegadores estan restringiendo. Con el
+   * rewrite, el navegador solo ve un origen, igual que en Docker detras de
+   * Caddy: misma cookie, sin CORS y un solo scope para el service worker.
+   *
+   * En Docker esta variable NO se define, porque de eso ya se encarga Caddy.
+   */
+  async rewrites() {
+    const api = process.env.ORIGEN_API_INTERNO;
+    if (!api) return [];
+    return [{ source: '/api/:ruta*', destination: `${api.replace(/\/$/, '')}/:ruta*` }];
+  },
 };
 
 export default config;

@@ -1,0 +1,12 @@
+# Contexto de build = raiz del repo (los Dockerfiles necesitan datos/).
+.git
+lives/transcripts
+archive
+node_modules
+**/node_modules
+**/.next
+**/dist
+**/.env
+!**/.env.example
+app/caddy_data
+app/caddy_config
