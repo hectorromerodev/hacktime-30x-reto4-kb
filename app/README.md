@@ -46,10 +46,23 @@ docker compose up --build
 Eso levanta cuatro servicios: **Postgres 18**, la **API**, la **web** y **Caddy** (que emite HTTPS solo).
 La primera vez la API sincroniza el esquema y carga el Excel real; tarda ~1 min.
 
-Abre **https://localhost**
+Quedan **dos direcciones**, y cuál usar depende de qué vayas a probar:
 
-> El certificado es local, así que el navegador va a advertir una vez. Acéptalo:
-> **HTTPS no es opcional aquí** — el micrófono y la cámara solo funcionan en contexto seguro.
+| Dirección | Para qué | Ojo |
+|---|---|---|
+| **http://localhost:3000** | **La voz en Chrome** | Sin certificado, sin advertencias |
+| **https://localhost** | **La cámara** y probar desde una tablet de la red | Hay que aceptar el certificado local una vez |
+
+> **Por qué dos.** En `https://localhost` el certificado es autofirmado y toca aceptarlo a la
+> fuerza. Sobre una página en ese estado, **Chrome falla al enviar el audio a sus servidores
+> de reconocimiento** y la voz no responde — aunque el botón sí reaccione. (Safari usa otra
+> ruta y ahí sí funciona, lo cual despista bastante.)
+>
+> Chrome trata `http://localhost` como **contexto seguro**, así que por el puerto 3000 el
+> micrófono funciona sin advertencia ninguna. La cámara sí exige HTTPS de verdad: para eso,
+> `https://localhost`.
+>
+> En producción no existe este problema: el certificado es real y todo va por una sola URL.
 
 Entra con cualquiera de estos usuarios de demostración:
 
@@ -430,9 +443,14 @@ publicó factores de conversión; adivinarlos corrompería el conteo.
 **El navegador advierte que el certificado no es confiable.**
 Es el certificado local que emite Caddy. Acéptalo. Sin HTTPS no hay micrófono ni cámara.
 
-**El micrófono no hace nada.**
-Tres causas, en orden de probabilidad: (1) estás en `http://` y no en `https://`;
-(2) no hay red — la voz la requiere, usa el teclado; (3) el navegador no es Chrome/Edge.
+**El micrófono no hace nada en Chrome, pero en Safari sí funciona.**
+Estás en `https://localhost` con el certificado aceptado a la fuerza: sobre una página así,
+Chrome falla al enviar el audio a sus servidores. **Usa http://localhost:3000.**
+
+**El micrófono no hace nada, en ningún navegador.**
+Tres causas, en orden de probabilidad: (1) no hay red — la voz la requiere, usa el teclado;
+(2) el navegador no es Chrome/Edge; (3) falta el permiso: revísalo en el candado de la barra
+de direcciones.
 
 **La app no carga y dice que no hay catálogo descargado.**
 Necesita una primera conexión para bajar el catálogo de esa bodega. Después ya funciona

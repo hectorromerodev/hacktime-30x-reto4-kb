@@ -58,13 +58,31 @@ services:
         # Se hornea en el bundle del cliente: el navegador llama a /api del
         # mismo origen y Caddy lo enruta al servicio api.
         NEXT_PUBLIC_API_URL: /api
+        # Permite que /api/* funcione tambien entrando directo por el puerto
+        # 3000, sin pasar por Caddy ni por su certificado local.
+        ORIGEN_API_INTERNO: http://api:4000
     restart: unless-stopped
     depends_on:
       - api
     environment:
       NODE_ENV: production
+      # Hace que Next reenvie /api/* al contenedor de la API. Con eso la web
+      # tambien funciona entrando DIRECTO por http://localhost:3000, sin pasar
+      # por Caddy. Detras de Caddy no estorba: Caddy atiende /api/* antes.
+      ORIGEN_API_INTERNO: http://api:4000
     expose:
       - '3000'
+    ports:
+      # Salida directa para desarrollo local.
+      #
+      # Sirve para el microfono en Chrome: en https://localhost hay que aceptar
+      # un certificado local, y sobre una pagina con el certificado forzado
+      # Chrome falla al enviar el audio a sus servidores de reconocimiento
+      # (error `network`). Chrome trata http://localhost como contexto seguro,
+      # asi que por aqui el microfono funciona sin advertencia ninguna.
+      #
+      # La camara SI exige HTTPS de verdad: para eso, https://localhost.
+      - '${PUERTO_WEB:-3000}:3000'
 
   caddy:
     image: caddy:2-alpine

@@ -30,6 +30,18 @@ COPY app/apps/web apps/web
 # bajo un solo scope.
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
+# A donde reenvia Next las llamadas a /api/*.
+#
+# Va como ARG y no solo como variable de entorno porque `rewrites()` se evalua
+# AL COMPILAR: se hornea en el manifiesto de rutas, y una variable puesta solo
+# en tiempo de ejecucion nunca la alcanza.
+#
+# Detras de Caddy esto no se usa (Caddy atiende /api/* primero). Sirve para
+# entrar DIRECTO por http://localhost:3000, que es la via sin certificado.
+ARG ORIGEN_API_INTERNO=http://api:4000
+ENV ORIGEN_API_INTERNO=$ORIGEN_API_INTERNO
+
 ENV NEXT_TELEMETRY_DISABLED=1
 
 WORKDIR /app/apps/web
