@@ -29,7 +29,7 @@ registrado como 90"*, un 3 escrito que se lee como 5, gramos confundidos con kil
 | Capturar más rápido y con menos error que papel + digitar | Elegir → teclear → **Guardar**, en la tablet. El artículo se elige por voz, escaneo, búsqueda o toque: el contador va por lo que tiene enfrente, no por el orden de la hoja |
 | Reconocer producto, cantidad y unidad sin ambigüedad | *"cinco kilos de harina"* → parser de español propio. **Los gramos se convierten y la conversión se muestra**; una unidad que no corresponde **bloquea** el guardado |
 | Detectar anomalías **antes** de guardar | 9 reglas. La central: capturar 900 donde el patrón dice decenas pregunta *"¿Eran 90?"* — **sin revelar nunca la cantidad del sistema** |
-| Validar contra el catálogo en tiempo real | Motor de coincidencia por nombre sobre los 936 artículos reales: **99.4% de acierto en top-5**, 0.10 ms por consulta, **funcionando sin red** |
+| Validar contra el catálogo en tiempo real | Motor de coincidencia por nombre sobre los 936 artículos reales: **99.4% de acierto en top-5**, menos de 1 ms por consulta, **funcionando sin red** |
 | *(Suma puntos)* Reporte de contado vs sistema | Excel de 3 hojas: la que reemplaza la digitación, la de diferencias y la de trazabilidad |
 
 ## Las tres restricciones que definieron el diseño
@@ -100,6 +100,10 @@ Latencia media por consulta: 0.10 ms
 Precisión del auto-aceptado: 99.8% sobre 3517 casos
 ```
 
+Las tasas de acierto son deterministas: dan lo mismo en cualquier máquina. La latencia no:
+0.10 ms en el equipo de referencia, 0.28–0.35 ms en un portátil bajo WSL2 con Node 22.
+En todos los casos, por debajo del milisegundo.
+
 ## Los datos
 
 Todo sale de `datos/BODEGAS Y STOCK.xlsx`, el archivo real que entregó Colsubsidio:
@@ -119,8 +123,9 @@ decisión de diseño.
 | Ruta | Qué hay |
 |---|---|
 | [`reto/`](reto/) | Texto oficial del reto, logística del hackathon, beneficios de patrocinadores |
+| [`concepto/`](concepto/) | El concepto de solución escrito antes de construir (borrador vivo) |
 | [`lives/`](lives/) | Análisis de cada sesión en vivo con Colsubsidio + transcripciones crudas |
-| [`research/`](research/) | Qué sabemos vs. qué estamos suponiendo; preguntas abiertas |
+| [`research/`](research/) | Qué sabemos vs. qué estamos suponiendo, preguntas abiertas, y el proceso de recepción de mercancía descrito por Colsubsidio |
 | [`datos/`](datos/) | El Excel original + perfil generado del dataset |
 | [`tools/`](tools/) | Scripts para bajar y limpiar transcripciones de YouTube |
 | [`archive/`](archive/) | Investigación de los retos 1 y 2, descartados |
