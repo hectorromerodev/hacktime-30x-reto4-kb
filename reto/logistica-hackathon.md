@@ -24,12 +24,19 @@ Source: <https://innovacion.colsubsidio.com/> (fetched 2026-07-22) + <https://ww
 
 (The site renders Thu–Sun schedule via JS tabs; grab it from the page in a browser or from the channel below.)
 
-## Upcoming charlas on @30XDevs (as of 2026-07-22)
+## Closing streams (added 2026-07-25 — scheduled, not yet aired)
+
+- **Pitches Finales** ([4k3I5OXcnjk](https://www.youtube.com/watch?v=4k3I5OXcnjk)) — Sunday 07-26, ≈1:00pm Colombia (derived from YouTube's countdown at 19:10 UTC on 07-25, **not** an official time).
+- **Premiación y clausura** ([V4VOUDjyHHY](https://www.youtube.com/watch?v=V4VOUDjyHHY)) — Sunday 07-26, ≈4:00pm Colombia (same derivation).
+
+Submission still closes **Sunday 07-26, 11:30am Colombia** (repo frozen, live link + 2-min video).
+
+## Charlas on @30XDevs (status as of 2026-07-25)
 
 Most relevant to us in **bold**.
 
-- **Gana el mejor pitch: aprende cómo hacerlo** ([QICdEq8shoQ](https://www.youtube.com/watch?v=QICdEq8shoQ)) — final pitch is scored; watch this.
-- **Human in the loop: Doble Check Humano** ([0GsbetGl-JU](https://www.youtube.com/watch?v=0GsbetGl-JU)) — maps 1:1 to our anomaly-confirmation flow.
+- **Gana el mejor pitch: aprende cómo hacerlo** ([QICdEq8shoQ](https://www.youtube.com/watch?v=QICdEq8shoQ)) — aired 07-24 → analyzed in `lives/2026-07-24-charla-gana-el-mejor-pitch-QICdEq8shoQ.md`.
+- **Human in the loop: Doble Check Humano** ([0GsbetGl-JU](https://www.youtube.com/watch?v=0GsbetGl-JU)) — aired 07-25 → analyzed in `lives/2026-07-25-charla-human-in-the-loop-0GsbetGl-JU.md`.
 - **Agentic Engineering: de escribir código a delegar trabajo a agentes** ([cRRpj3dcDCA](https://www.youtube.com/watch?v=cRRpj3dcDCA))
 - Loop Engineering: agentes que corren durante horas ([70oh4yFj1ek](https://www.youtube.com/watch?v=70oh4yFj1ek))
 - Agentes de IA: lo que está pasando ([yvkBGbp9u_Q](https://www.youtube.com/watch?v=yvkBGbp9u_Q))

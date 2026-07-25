@@ -119,6 +119,7 @@ decisión de diseño.
 | Ruta | Qué hay |
 |---|---|
 | [`reto/`](reto/) | Texto oficial del reto, logística del hackathon, beneficios de patrocinadores |
+| [`concepto/`](concepto/) | El concepto de solución escrito antes de construir (borrador vivo) |
 | [`lives/`](lives/) | Análisis de cada sesión en vivo con Colsubsidio + transcripciones crudas |
 | [`research/`](research/) | Qué sabemos vs. qué estamos suponiendo; preguntas abiertas |
 | [`datos/`](datos/) | El Excel original + perfil generado del dataset |
