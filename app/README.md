@@ -273,6 +273,39 @@ pnpm --filter api seed -- --reset  # recargar el catálogo desde el Excel
 El seed es **idempotente**: correrlo dos veces no duplica nada, así que reiniciar el
 contenedor es seguro. Con `--reset` sí vacía y recarga.
 
+### Despliegue en producción
+
+| Pieza | Dónde | Notas |
+|---|---|---|
+| Web | Vercel | `rootDirectory = apps/web` en el proyecto (no en `vercel.json`); Vercel detecta el workspace de pnpm solo |
+| API | Render, contenedor Docker | Blueprint en [`render.yaml`](../render.yaml) |
+| Base | Neon, Postgres 18 | `DATABASE_URL` se pega a mano en el panel de Render |
+
+> ⚠ **El auto-deploy de Render no dispara.** El servicio se creó por API contra un
+> repositorio público, así que GitHub no tiene webhook instalado y `autoDeploy: true` no
+> sirve de nada: se queda en el commit con el que se creó. **Después de cada push hay que
+> lanzar el despliegue a mano**, desde el panel (*Manual Deploy*) o por API:
+>
+> ```bash
+> curl -X POST -H "Authorization: Bearer $RENDER_API_KEY" \
+>   https://api.render.com/v1/services/<serviceId>/deploys -d '{}'
+> ```
+>
+> Se detecta rápido: la web publica al instante y la API se queda vieja, así que aparecen
+> 404 en rutas que sí existen en el código.
+
+### Datos para grabar el video
+
+```bash
+pnpm --filter api demo              # deja una bodega parcialmente contada
+pnpm --filter api demo -- --limpiar # la deja limpia otra vez
+```
+
+Siembra **Kiosco Piscigiros AyB** con 39 artículos contados por dos personas, los cuatro
+métodos de captura, una anomalía confirmada con su motivo y un conflicto entre contadores.
+Deja **ACEITE**, **AGUA 280 ML** y **AGUA BOTELLA** sin contar, para hacerlo frente a la
+cámara — `ACEITE` tiene 30,59 L, así que teclear `900` dispara la verificación.
+
 ### Migraciones de base de datos
 
 El esquema se versiona con migraciones de Prisma, en
