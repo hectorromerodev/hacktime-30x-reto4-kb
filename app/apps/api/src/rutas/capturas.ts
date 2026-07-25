@@ -209,7 +209,61 @@ export async function rutasCapturas(app: FastifyInstance) {
     },
   );
 
-  /** Lo capturado hasta ahora. Alimenta la lista y la vista del lider. */
+  /**
+   * SOLO las capturas del usuario que pide, para poder retomar el conteo en
+   * otra tablet sin perder lo propio.
+   *
+   * Es una ruta aparte y no un parametro de la anterior a proposito: filtrar
+   * por `usuarioId` no puede depender de que nadie olvide pasar una bandera.
+   * El conteo es ciego TAMBIEN entre contadores — uno cuenta y otro recuenta
+   * sin ver el resultado del primero, que es el control de auditoria — asi que
+   * esta ruta jamas debe devolver lo de otra persona.
+   */
+  app.get<{ Params: { id: string } }>('/conteos/:id/capturas/mias', async (req) => {
+    const capturas = await prisma.captura.findMany({
+      where: {
+        conteoId: req.params.id,
+        usuarioId: req.sesion!.usuarioId,
+        estado: 'ACTIVA',
+      },
+      select: {
+        clientId: true,
+        articuloId: true,
+        cantidad: true,
+        unidad: true,
+        unidadDicha: true,
+        metodo: true,
+        textoCrudo: true,
+        scoreMatch: true,
+        anomalias: true,
+        motivoConfirmacion: true,
+        enConflicto: true,
+        capturadoEn: true,
+        articulo: { select: { nombre: true } },
+      },
+      orderBy: { capturadoEn: 'asc' },
+    });
+
+    return {
+      capturas: capturas.map((c) => ({
+        clientId: c.clientId,
+        articuloId: c.articuloId,
+        articuloNombre: c.articulo.nombre.trim(),
+        cantidad: aNumero(c.cantidad),
+        unidad: c.unidad,
+        unidadDicha: c.unidadDicha,
+        metodo: c.metodo,
+        textoCrudo: c.textoCrudo,
+        scoreMatch: c.scoreMatch,
+        anomalias: c.anomalias,
+        motivoConfirmacion: c.motivoConfirmacion,
+        enConflicto: c.enConflicto,
+        capturadoEn: c.capturadoEn.toISOString(),
+      })),
+    };
+  });
+
+  /** Lo capturado hasta ahora. Alimenta la vista del lider. */
   app.get<{ Params: { id: string } }>('/conteos/:id/capturas', async (req) => {
     const capturas = await prisma.captura.findMany({
       where: { conteoId: req.params.id, estado: 'ACTIVA' },

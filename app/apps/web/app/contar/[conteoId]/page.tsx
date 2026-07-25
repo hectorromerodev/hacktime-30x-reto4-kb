@@ -112,9 +112,11 @@ export default function Contar() {
   // ── Carga inicial: catalogo desde red, o desde IndexedDB si no hay ──────
   useEffect(() => {
     (async () => {
+      let yo: Usuario;
       try {
-        const { usuario } = await api<{ usuario: Usuario }>('/auth/yo');
-        setUsuario(usuario);
+        const r = await api<{ usuario: Usuario }>('/auth/yo');
+        yo = r.usuario;
+        setUsuario(yo);
       } catch {
         router.push('/');
         return;
@@ -130,6 +132,28 @@ export default function Contar() {
         await guardarMeta('codigos', cat.codigos);
         setBodega(cat.bodega);
         setCodigos(new Map(cat.codigos.map((c) => [c.codigo, c.articuloId])));
+
+        // Se recuperan las capturas PROPIAS del servidor, para poder retomar
+        // el conteo en otra tablet. Nunca las de otros contadores: el conteo
+        // tambien es ciego entre ellos, que es el control de auditoria.
+        try {
+          const mias = await api<{ capturas: CapturaLocal[] }>(
+            `/conteos/${conteoId}/capturas/mias`,
+          );
+          if (mias.capturas.length) {
+            await db.capturas.bulkPut(
+              mias.capturas.map((c) => ({
+                ...c,
+                conteoId,
+                usuarioNombre: yo.nombre,
+                // Vienen del servidor: ya estan sincronizadas y NO se encolan.
+                sincronizada: true,
+              })),
+            );
+          }
+        } catch {
+          // Sin esto se sigue contando igual; solo no se ve lo previo.
+        }
       } catch {
         // Sin red: se trabaja con la copia local. Es el caso normal en bodega.
         const guardada = await db.meta.get('bodega');

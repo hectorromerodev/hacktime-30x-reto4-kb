@@ -188,6 +188,69 @@ describe('el resto de rutas del contador', () => {
   });
 });
 
+describe('el conteo tambien es ciego ENTRE contadores', () => {
+  test('/capturas/mias jamas devuelve lo capturado por otra persona', async () => {
+    // Se siembran dos capturas del MISMO articulo, de dos personas distintas.
+    const [yo, otro] = await prisma.usuario.findMany({ take: 2, orderBy: { nombre: 'asc' } });
+    const stock = await prisma.stock.findFirst({ where: { bodegaId } });
+
+    await prisma.captura.createMany({
+      data: [
+        {
+          clientId: `prueba-ciego-mia-${conteoId}`,
+          conteoId,
+          articuloId: stock!.articuloId,
+          cantidad: 11,
+          unidad: 'Unidad',
+          metodo: 'TECLADO',
+          usuarioId: yo.id,
+          capturadoEn: new Date(),
+        },
+        {
+          clientId: `prueba-ciego-ajena-${conteoId}`,
+          conteoId,
+          articuloId: stock!.articuloId,
+          cantidad: 999,
+          unidad: 'Unidad',
+          metodo: 'TECLADO',
+          usuarioId: otro.id,
+          capturadoEn: new Date(),
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    // Se entra como `yo` (la sesion del before es otra: se rehace).
+    const login = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { usuarioId: yo.id, pin: yo.pin },
+    });
+    const galleta = login.headers['set-cookie']!.toString().split(';')[0];
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/conteos/${conteoId}/capturas/mias`,
+      headers: { cookie: galleta },
+    });
+    assert.equal(res.statusCode, 200);
+
+    const cuerpo = res.body;
+    const capturas = res.json().capturas as { clientId: string; cantidad: number }[];
+
+    assert.ok(
+      capturas.some((c) => c.clientId === `prueba-ciego-mia-${conteoId}`),
+      'deberia devolver lo propio',
+    );
+    assert.ok(
+      !capturas.some((c) => c.clientId === `prueba-ciego-ajena-${conteoId}`),
+      'FUGA: devolvio la captura de otro contador',
+    );
+    // El 999 del otro no puede aparecer ni siquiera de refilon.
+    assert.ok(!cuerpo.includes('999'), 'FUGA: la cantidad ajena viajo en la respuesta');
+  });
+});
+
 describe('el reporte del lider SI muestra el sistema (el conteo ya termino)', () => {
   test('ahi la comparacion es el objetivo, no una fuga', async () => {
     const res = await app.inject({
