@@ -675,14 +675,17 @@ export default function Contar() {
       data-panel={!activo ? 'lista' : tipo === 'MERMA' ? 'merma' : 'conteo'}
     >
       {/* ── Cabecera: progreso y estado de red ── */}
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-borde px-3 py-3">
+      {/* Filete de marca, igual que en el hero de entrada: da presencia
+          constante al amarillo sin gastar la señal de alerta, que se reserva
+          para los rellenos grandes (merma y el dialogo de anomalias). */}
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b-[3px] border-b-alerta px-3 py-3">
         {/* Salida explícita. Antes el nombre de la bodega era el único modo de
             volver, y no se veía como un botón: tocaba usar el "atrás" del
             navegador. */}
         <button
           onClick={() => router.push('/')}
           aria-label="Salir de esta bodega"
-          className="toque flex shrink-0 items-center rounded-xl border border-borde px-3 text-lg"
+          className="toque flex shrink-0 items-center rounded-xl border border-borde-fuerte px-3 text-lg"
         >
           ←
         </button>
@@ -700,7 +703,7 @@ export default function Contar() {
               soporta el punto de venta no lo es en absoluto. */}
           <span
             className={`rounded-full px-3 py-1 text-xs font-medium ${
-              enLinea ? 'bg-acento/20 text-acento' : 'bg-alerta/20 text-alerta'
+              enLinea ? 'bg-acento/20 text-acento' : 'bg-alerta/20 text-alerta-texto'
             }`}
             title={
               conexion === 'SERVIDOR_INALCANZABLE'
@@ -720,7 +723,7 @@ export default function Contar() {
           {usuario?.rol === 'LIDER' && (
             <button
               onClick={() => router.push(`/lider/${conteoId}`)}
-              className="rounded-full border border-borde px-3 py-1 text-xs"
+              className="toque-menor rounded-full border border-borde-fuerte px-3 text-xs font-medium"
             >
               Cierre
             </button>
@@ -728,9 +731,9 @@ export default function Contar() {
         </div>
       </header>
 
-      <div className="h-1 shrink-0 bg-superficie">
+      <div className="h-1.5 shrink-0 bg-superficie-alta">
         <div
-          className="h-full bg-acento transition-all"
+          className="h-full rounded-r-full bg-alerta transition-all"
           style={{ width: `${total ? (contados / total) * 100 : 0}%` }}
         />
       </div>
@@ -745,7 +748,9 @@ export default function Contar() {
               key={f}
               onClick={() => setFamilia(f)}
               className={`toque-menor shrink-0 rounded-full border px-4 text-sm transition-colors ${
-                familia === f ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
+                familia === f
+                  ? 'border-acento bg-acento/15 font-medium text-acento'
+                  : 'border-borde-fuerte text-tenue'
               }`}
             >
               {f === 'TODAS' ? 'Todas' : f.replaceAll('_', ' ').toLowerCase()}
@@ -757,7 +762,7 @@ export default function Contar() {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar artículo…"
-          className="toque mb-3 w-full rounded-xl border border-borde bg-superficie px-4 text-base outline-none focus:border-acento"
+          className="toque mb-3 w-full rounded-xl border border-borde-fuerte bg-superficie px-4 text-base outline-none focus:border-acento focus:ring-2 focus:ring-acento/30"
         />
 
         {/*
@@ -810,7 +815,7 @@ export default function Contar() {
       {/* ── Zona de captura, siempre en la mitad inferior ── */}
       <section className="zona-captura margen-inferior-seguro shrink-0 border-t border-borde bg-superficie/70 px-4 pt-3 backdrop-blur">
         {avisoVoz && (
-          <p className="mb-2 rounded-lg bg-alerta/15 px-3 py-2 text-sm text-alerta">{avisoVoz}</p>
+          <p className="mb-2 rounded-lg bg-alerta/15 px-3 py-2 text-sm text-alerta-texto">{avisoVoz}</p>
         )}
 
         {candidatos.length > 0 && (
@@ -821,7 +826,7 @@ export default function Contar() {
                 <button
                   key={c.articulo.id}
                   onClick={() => elegirArticulo(c.articulo as ArticuloLocal, c.score)}
-                  className="rounded-xl border border-borde bg-superficie-alta p-3 text-left text-sm"
+                  className="rounded-xl border border-borde-fuerte bg-superficie p-3 text-left text-sm transition-colors active:border-acento active:bg-acento/10"
                   style={{ minHeight: 76 }}
                 >
                   {/* Se resalta lo que DIFERENCIA a cada candidato: entre ocho
@@ -851,9 +856,9 @@ export default function Contar() {
               className={`toque-menor rounded-xl border text-sm font-medium transition-colors ${
                 tipo === t
                   ? t === 'MERMA'
-                    ? 'border-alerta bg-alerta/15 text-alerta'
+                    ? 'border-alerta bg-alerta/15 text-alerta-texto'
                     : 'border-acento bg-acento/15 text-acento'
-                  : 'border-borde text-tenue'
+                  : 'border-borde-fuerte text-tenue'
               }`}
             >
               {t === 'CONTEO' ? 'Contar existencias' : 'Registrar merma'}
@@ -891,8 +896,8 @@ export default function Contar() {
                       onClick={() => setMotivoMerma(m)}
                       className={`toque-menor rounded-full border px-4 text-sm transition-colors ${
                         motivoMerma === m
-                          ? 'border-alerta bg-alerta/20 text-alerta'
-                          : 'border-borde text-tenue'
+                          ? 'border-alerta-texto bg-alerta/25 font-medium text-alerta-texto'
+                          : 'border-borde-fuerte text-tenue'
                       }`}
                     >
                       {m}
@@ -917,7 +922,7 @@ export default function Contar() {
                     className="h-6 w-6 shrink-0 rounded accent-alerta"
                   />
                   <span className="text-tenue">
-                    Este producto <strong className="text-white">ya lo conté</strong> como
+                    Este producto <strong className="text-texto">ya lo conté</strong> como
                     existencia (sigue en el estante)
                   </span>
                 </label>
@@ -946,7 +951,7 @@ export default function Contar() {
                     </div>
                     <button
                       onClick={() => setFoto(null)}
-                      className="rounded-lg border border-borde px-3 py-2 text-xs"
+                      className="toque-menor rounded-lg border border-borde-fuerte px-3 text-xs"
                     >
                       Quitar
                     </button>
@@ -954,7 +959,7 @@ export default function Contar() {
                 ) : (
                   <button
                     onClick={() => entradaFoto.current?.click()}
-                    className="toque w-full rounded-xl border border-borde text-sm"
+                    className="toque w-full rounded-xl border border-borde-fuerte text-sm transition-colors active:bg-superficie-alta"
                   >
                     Tomar foto de evidencia (opcional)
                   </button>
@@ -989,8 +994,13 @@ export default function Contar() {
               <button
                 onClick={intentarGuardar}
                 disabled={cantidad === '' || (tipo === 'MERMA' && !motivoMerma)}
-                className={`col-span-2 rounded-xl text-lg font-semibold text-black disabled:opacity-40 ${
-                  tipo === 'MERMA' ? 'bg-alerta' : 'bg-acento'
+                /*
+                 * El color del texto depende del relleno, y no es cosmetico:
+                 * sobre el amarillo de marca el texto va OSCURO (10.56:1) —
+                 * en blanco daria 1.47:1, ilegible. Sobre el azul, blanco.
+                 */
+                className={`col-span-2 rounded-xl text-lg font-semibold disabled:opacity-40 ${
+                  tipo === 'MERMA' ? 'bg-alerta text-texto' : 'bg-acento text-white'
                 }`}
                 style={{ minHeight: 64 }}
               >
@@ -1025,10 +1035,10 @@ export default function Contar() {
             <div className="min-h-[2.5rem]">
               {escuchando ? (
                 <p className="text-sm font-medium text-acento">
-                  {parcial ? <span className="text-white">{parcial}…</span> : 'Escuchando… habla ahora'}
+                  {parcial ? <span className="text-texto">{parcial}…</span> : 'Escuchando… habla ahora'}
                 </p>
               ) : parcial ? (
-                <p className="text-sm text-white">{parcial}…</p>
+                <p className="text-sm text-texto">{parcial}…</p>
               ) : (
                 <>
                   {/* Confirmacion de lo guardado. Sustituye al avance
@@ -1054,7 +1064,7 @@ export default function Contar() {
                       */}
                       <button
                         onClick={() => elegirArticulo(siguienteSinContar)}
-                        className="toque-menor min-w-0 flex-1 truncate rounded-xl border border-borde bg-superficie-alta px-3 text-left text-sm text-white transition-colors active:border-acento"
+                        className="toque-menor min-w-0 flex-1 truncate rounded-xl border border-borde-fuerte bg-superficie px-3 text-left text-sm font-medium text-texto transition-colors active:border-acento active:bg-acento/10"
                       >
                         {siguienteSinContar.nombre.trim()}
                       </button>
@@ -1081,7 +1091,7 @@ export default function Contar() {
                 aria-checked={continuo}
                 onClick={() => cambiarContinuo(!continuo)}
                 className={`toque-menor flex shrink-0 items-center gap-2 rounded-xl border px-3 text-xs transition-colors ${
-                  continuo ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
+                  continuo ? 'border-acento bg-acento/15 font-medium text-acento' : 'border-borde-fuerte text-tenue'
                 }`}
               >
                 <span
@@ -1102,14 +1112,14 @@ export default function Contar() {
 
               <button
                 onClick={() => setEscaneando(true)}
-                className="toque flex-1 rounded-xl border border-borde px-4 text-sm transition-colors active:border-acento"
+                className="toque flex-1 rounded-xl border border-borde-fuerte px-4 text-sm font-medium transition-colors active:border-acento active:bg-acento/10"
                 title="Escanear código o QR de estante"
               >
                 Escanear
               </button>
 
               <button
-                className="microfono shrink-0 bg-acento text-black disabled:opacity-40"
+                className="microfono shrink-0 bg-acento text-white disabled:opacity-40"
                 data-escuchando={escuchando}
                 // Ya NO se cancela en onPointerLeave: al sostener el boton en una
                 // tablet el dedo se mueve unos pixeles y salia del elemento,
@@ -1241,72 +1251,91 @@ function DialogoAnomalias({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 sm:items-center sm:justify-center">
-      <div className="w-full max-w-md rounded-2xl border border-alerta/60 bg-superficie p-5">
-        <p className="mb-1 text-sm font-semibold text-alerta">⚠ {principal.titulo}</p>
-        <p className="mb-4 text-sm text-tenue">{principal.mensaje}</p>
-
-        <div className="mb-4 rounded-xl bg-superficie-alta p-4">
-          <p className="text-sm text-tenue">{articulo.nombre.trim()}</p>
-          <p className="text-3xl font-bold tabular-nums">
-            {cantidad.toLocaleString('es-CO')}{' '}
-            <span className="text-base font-normal text-tenue">
-              {etiquetaUnidad(articulo.unidad as Unidad, cantidad)}
-            </span>
-          </p>
+    <div className="fixed inset-0 z-50 flex items-end bg-[var(--velo)] p-4 sm:items-center sm:justify-center">
+      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-superficie">
+        {/*
+          Banda amarilla, no un borde de 1 px.
+          Este dialogo es el corazon del producto — el 9 que se convirtio en 90
+          — y con el amarillo reducido a un contorno fino la advertencia no
+          pesaba mas que cualquier otra tarjeta. Como relleno con texto oscuro
+          da 10.56:1 (AAA) y es imposible de confundir con el resto de la
+          interfaz. Al reves seria ilegible: texto amarillo sobre claro es
+          1.47:1.
+        */}
+        <div className="flex items-center gap-2 bg-alerta px-5 py-3">
+          <span aria-hidden className="text-lg">
+            ⚠
+          </span>
+          <p className="text-base font-bold text-texto">{principal.titulo}</p>
         </div>
 
-        {anomalias.length > 1 && (
-          <ul className="mb-4 grid gap-1 text-xs text-tenue">
-            {anomalias.slice(1).map((a) => (
-              <li key={a.codigo}>· {a.mensaje}</li>
-            ))}
-          </ul>
-        )}
+        <div className="p-5">
+          <p className="mb-4 text-sm text-tenue">{principal.mensaje}</p>
 
-        <div className="grid gap-2">
-          <button
-            onClick={onReteclear}
-            className="toque rounded-xl bg-acento text-base font-semibold text-black"
-          >
-            Volver a teclear
-          </button>
+          <div className="mb-4 rounded-xl bg-superficie-alta p-4">
+            <p className="text-sm text-tenue">{articulo.nombre.trim()}</p>
+            <p className="text-3xl font-bold tabular-nums">
+              {cantidad.toLocaleString('es-CO')}{' '}
+              <span className="text-base font-normal text-tenue">
+                {etiquetaUnidad(articulo.unidad as Unidad, cantidad)}
+              </span>
+            </p>
+          </div>
 
-          {correcciones.map((o) => (
-            <button
-              key={o.etiqueta}
-              onClick={() => onCorregir(o.valor!)}
-              className="toque rounded-xl border border-borde text-base"
-            >
-              {o.etiqueta}
-            </button>
-          ))}
-
-          {!hayBloqueo && (
-            <>
-              <p className="mt-2 text-xs text-tenue">Si es correcto, indica por qué:</p>
-              <div className="flex flex-wrap gap-2">
-                {MOTIVOS_CONFIRMACION.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMotivo(m)}
-                    className={`toque-menor rounded-full border px-4 text-sm transition-colors ${
-                      motivo === m ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={onAceptar}
-                disabled={!motivo}
-                className="toque rounded-xl border border-borde text-base disabled:opacity-40"
-              >
-                Es correcto, guardar
-              </button>
-            </>
+          {anomalias.length > 1 && (
+            <ul className="mb-4 grid gap-1 text-xs text-tenue">
+              {anomalias.slice(1).map((a) => (
+                <li key={a.codigo}>· {a.mensaje}</li>
+              ))}
+            </ul>
           )}
+
+          <div className="grid gap-2">
+            <button
+              onClick={onReteclear}
+              className="toque rounded-xl bg-acento text-base font-semibold text-white"
+            >
+              Volver a teclear
+            </button>
+
+            {correcciones.map((o) => (
+              <button
+                key={o.etiqueta}
+                onClick={() => onCorregir(o.valor!)}
+                className="toque rounded-xl border border-borde-fuerte text-base font-medium transition-colors active:bg-superficie-alta"
+              >
+                {o.etiqueta}
+              </button>
+            ))}
+
+            {!hayBloqueo && (
+              <>
+                <p className="mt-2 text-xs text-tenue">Si es correcto, indica por qué:</p>
+                <div className="flex flex-wrap gap-2">
+                  {MOTIVOS_CONFIRMACION.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setMotivo(m)}
+                      className={`toque-menor rounded-full border px-4 text-sm transition-colors ${
+                        motivo === m
+                          ? 'border-acento bg-acento/15 font-medium text-acento'
+                          : 'border-borde-fuerte text-tenue'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={onAceptar}
+                  disabled={!motivo}
+                  className="toque rounded-xl border border-borde-fuerte text-base transition-colors active:bg-superficie-alta disabled:opacity-40"
+                >
+                  Es correcto, guardar
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

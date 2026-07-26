@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0b1220',
+  themeColor: '#004B8D',
   width: 'device-width',
   initialScale: 1,
   // Se bloquea el zoom: durante el conteo un pellizco accidental estorba.

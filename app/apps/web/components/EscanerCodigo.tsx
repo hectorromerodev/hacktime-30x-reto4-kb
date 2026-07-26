@@ -431,7 +431,7 @@ export function EscanerCodigo({
                 <button
                   onClick={guardarYSeguir}
                   disabled={cantidad === '' || guardando}
-                  className="col-span-2 rounded-xl bg-acento text-base font-semibold text-black disabled:opacity-40"
+                  className="col-span-2 rounded-xl bg-acento text-base font-semibold text-white disabled:opacity-40"
                   style={{ minHeight: 52 }}
                 >
                   {guardando ? '…' : 'Guardar y seguir'}
@@ -452,7 +452,7 @@ export function EscanerCodigo({
             <div className="grid gap-2">
               <button
                 onClick={() => onArticulo(porConfirmar.articulo, porConfirmar.codigo)}
-                className="toque rounded-xl bg-acento text-base font-semibold text-black"
+                className="toque rounded-xl bg-acento text-base font-semibold text-white"
               >
                 Sí, contar este
               </button>

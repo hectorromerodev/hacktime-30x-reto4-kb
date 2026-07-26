@@ -164,11 +164,11 @@ export default function Diagnostico() {
           1 · Probar micrófono
         </button>
         {!escuchando ? (
-          <button onClick={probarVoz} className="toque rounded-xl bg-acento px-5 font-semibold text-black">
+          <button onClick={probarVoz} className="toque rounded-xl bg-acento px-5 font-semibold text-white">
             2 · Probar reconocimiento
           </button>
         ) : (
-          <button onClick={detener} className="toque rounded-xl bg-alerta px-5 font-semibold text-black">
+          <button onClick={detener} className="toque rounded-xl bg-alerta px-5 font-semibold text-texto">
             Detener (estoy escuchando…)
           </button>
         )}
@@ -207,23 +207,23 @@ export default function Diagnostico() {
         <h2 className="mb-2 font-medium">Qué significa cada error</h2>
         <ul className="grid gap-2 text-tenue">
           <li>
-            <code className="text-white">network</code> — el navegador no pudo llegar a sus
+            <code className="text-texto">network</code> — el navegador no pudo llegar a sus
             servidores de reconocimiento. Es el más común: firewall, VPN, red corporativa o
             bloqueo de servicios de Google.
           </li>
           <li>
-            <code className="text-white">not-allowed</code> — falta el permiso de micrófono, o
+            <code className="text-texto">not-allowed</code> — falta el permiso de micrófono, o
             una política del navegador lo bloquea.
           </li>
           <li>
-            <code className="text-white">no-speech</code> — no entró audio. El micrófono
+            <code className="text-texto">no-speech</code> — no entró audio. El micrófono
             funciona, pero no captó voz.
           </li>
           <li>
-            <code className="text-white">audio-capture</code> — no hay micrófono disponible.
+            <code className="text-texto">audio-capture</code> — no hay micrófono disponible.
           </li>
           <li>
-            <code className="text-white">service-not-allowed</code> — el navegador tiene
+            <code className="text-texto">service-not-allowed</code> — el navegador tiene
             deshabilitado el servicio de dictado.
           </li>
         </ul>

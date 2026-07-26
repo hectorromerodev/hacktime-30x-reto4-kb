@@ -174,7 +174,7 @@ export default function Lider() {
           <p className="text-sm text-tenue">
             Periodo {reporte.periodo}
             {reporte.secuencia > 1 && ` · conteo #${reporte.secuencia}`} ·{' '}
-            <span className={cerrado ? 'text-acento' : 'text-alerta'}>
+            <span className={cerrado ? 'text-acento' : 'text-alerta-texto'}>
               {cerrado ? 'cerrado' : 'abierto'}
             </span>
             {reporte.cerradoEn &&
@@ -184,7 +184,7 @@ export default function Lider() {
         {!cerrado && (
           <button
             onClick={() => setConfirmandoCierre(true)}
-            className="toque shrink-0 rounded-xl bg-acento px-5 font-semibold text-black"
+            className="toque shrink-0 rounded-xl bg-acento px-5 font-semibold text-white"
           >
             Cerrar conteo
           </button>
@@ -267,7 +267,7 @@ export default function Lider() {
           {resumen.articulosConMerma > 0 && (
             <div className="tarjeta mb-5">
               <p className="text-sm">
-                <strong className="text-alerta">{resumen.articulosConMerma}</strong> artículo(s)
+                <strong className="text-alerta-texto">{resumen.articulosConMerma}</strong> artículo(s)
                 con merma registrada, y{' '}
                 <strong className="text-acento">{resumen.descuadresExplicados}</strong>{' '}
                 descuadre(s) quedan totalmente explicados por ella.
@@ -281,7 +281,7 @@ export default function Lider() {
 
           {reporte.conflictos.length > 0 && (
             <div className="tarjeta mb-5 border-alerta/60">
-              <p className="mb-2 text-sm font-medium text-alerta">
+              <p className="mb-2 text-sm font-medium text-alerta-texto">
                 {reporte.conflictos.length} artículo(s) sin cantidad definida
               </p>
               <p className="mb-3 text-sm text-tenue">
@@ -296,7 +296,7 @@ export default function Lider() {
                       {c.porContador.map((p) => (
                         <span key={p.nombre}>
                           {p.nombre}:{' '}
-                          <strong className="tabular-nums text-white">
+                          <strong className="tabular-nums text-texto">
                             {p.cantidad.toLocaleString('es-CO')}
                           </strong>
                         </span>
@@ -319,7 +319,7 @@ export default function Lider() {
             <span key="n" className="font-mono text-xs text-tenue">{f.nrArticulo ?? '—'}</span>,
             <span key="a">
               {f.articulo}
-              {f.enConflicto && <span className="ml-2 text-xs text-alerta">conflicto</span>}
+              {f.enConflicto && <span className="ml-2 text-xs text-alerta-texto">conflicto</span>}
             </span>,
             <span key="u" className="text-tenue">{f.unidad}</span>,
             <Num key="s" v={f.sistema} tenue />,
@@ -328,7 +328,7 @@ export default function Lider() {
             ) : (
               <Num key="c" v={f.contado} />
             ),
-            f.merma ? <Num key="m" v={f.merma} clase="text-alerta" /> : <span key="m" />,
+            f.merma ? <Num key="m" v={f.merma} clase="text-alerta-texto" /> : <span key="m" />,
             <span key="me" className="text-xs text-tenue">{f.metodos.join(', ')}</span>,
           ])}
         />
@@ -341,12 +341,12 @@ export default function Lider() {
           filas={reporte.diferencias.map((d) => [
             <span key="a">
               {d.articulo}
-              {d.enConflicto && <span className="ml-2 text-xs text-alerta">conflicto</span>}
+              {d.enConflicto && <span className="ml-2 text-xs text-alerta-texto">conflicto</span>}
             </span>,
             <Num key="s" v={d.sistema} tenue />,
             d.contado === null ? <span key="c" className="text-tenue">—</span> : <Num key="c" v={d.contado} />,
             <Num key="d" v={d.diferencia} clase={d.diferencia < 0 ? 'text-peligro' : 'text-acento'} signo />,
-            d.merma ? <Num key="m" v={d.merma} clase="text-alerta" /> : <span key="m" />,
+            d.merma ? <Num key="m" v={d.merma} clase="text-alerta-texto" /> : <span key="m" />,
             d.sinExplicar === null ? (
               <span key="x" className="text-tenue">—</span>
             ) : d.sinExplicar === 0 ? (
@@ -389,7 +389,7 @@ export default function Lider() {
                   )}
                   <div className="min-w-0 flex-1 text-sm">
                     <p className="truncate font-medium">{m.articulo}</p>
-                    <p className="text-lg font-bold tabular-nums text-alerta">
+                    <p className="text-lg font-bold tabular-nums text-alerta-texto">
                       {m.cantidad.toLocaleString('es-CO')}{' '}
                       <span className="text-xs font-normal text-tenue">{m.unidad}</span>
                     </p>
@@ -398,7 +398,7 @@ export default function Lider() {
                       {m.usuario} · {new Date(m.capturadoEn).toLocaleString('es-CO')}
                     </p>
                     {m.incluidoEnConteo && (
-                      <p className="mt-1 text-xs text-alerta">ya estaba en lo contado</p>
+                      <p className="mt-1 text-xs text-alerta-texto">ya estaba en lo contado</p>
                     )}
                   </div>
                 </li>
@@ -423,7 +423,7 @@ export default function Lider() {
             <span key="t" className="text-xs italic text-tenue">
               {t.textoCrudo ? `"${t.textoCrudo}"` : ''}
             </span>,
-            <span key="an" className="text-xs text-alerta">
+            <span key="an" className="text-xs text-alerta-texto">
               {t.anomalias.join(', ')}
               {t.motivoConfirmacion && (
                 <span className="block text-tenue">→ {t.motivoConfirmacion}</span>
@@ -438,7 +438,7 @@ export default function Lider() {
       {ampliada?.fotoUrl && (
         <button
           onClick={() => setAmpliada(null)}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a2540]/95 p-4"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -458,19 +458,19 @@ export default function Lider() {
 
       {/* ── Confirmar cierre ── */}
       {confirmandoCierre && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 sm:items-center sm:justify-center">
+        <div className="fixed inset-0 z-50 flex items-end bg-[var(--velo)] p-4 sm:items-center sm:justify-center">
           <div className="w-full max-w-md rounded-2xl border border-borde bg-superficie p-5">
             <h2 className="mb-1 text-lg font-semibold">Cerrar el conteo</h2>
             <p className="mb-4 text-sm text-tenue">
               No entrarán más capturas. La bodega queda libre para empezar otro conteo, y este
               queda firmado con tu nombre y la hora.
               {resumen.sinContar > 0 && (
-                <span className="mt-2 block text-alerta">
+                <span className="mt-2 block text-alerta-texto">
                   Quedan {resumen.sinContar} artículo(s) sin contar.
                 </span>
               )}
               {resumen.enConflicto > 0 && (
-                <span className="mt-1 block text-alerta">
+                <span className="mt-1 block text-alerta-texto">
                   Hay {resumen.enConflicto} sin cantidad definida; saldrán vacíos en el archivo.
                 </span>
               )}
@@ -486,7 +486,7 @@ export default function Lider() {
               <button
                 onClick={cerrar}
                 disabled={cerrando}
-                className="toque rounded-xl bg-acento font-semibold text-black disabled:opacity-40"
+                className="toque rounded-xl bg-acento font-semibold text-white disabled:opacity-40"
               >
                 {cerrando ? 'Cerrando…' : 'Cerrar conteo'}
               </button>
@@ -572,7 +572,7 @@ function Dato({
 }) {
   return (
     <div className="tarjeta">
-      <p className={`text-3xl font-bold tabular-nums ${alerta ? 'text-alerta' : ''}`}>{valor}</p>
+      <p className={`text-3xl font-bold tabular-nums ${alerta ? 'text-alerta-texto' : ''}`}>{valor}</p>
       <p className="text-xs text-tenue">{etiqueta}</p>
     </div>
   );

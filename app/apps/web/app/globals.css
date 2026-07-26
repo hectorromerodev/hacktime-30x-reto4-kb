@@ -1,24 +1,80 @@
 @import 'tailwindcss';
 
 /*
- * Diseño para tablet sostenida con un brazo y operada con el pulgar de la otra
- * mano, en una bodega. Tres consecuencias:
+ * Diseño para un dispositivo sostenido con una mano y operado con el pulgar de
+ * la otra, en una bodega. Cuatro consecuencias:
+ *  - el telefono es el caso base, no la tablet;
  *  - todo lo interactivo vive en la mitad inferior de la pantalla;
- *  - ningun objetivo tactil baja de 56 px;
- *  - alto contraste, porque hay bodegas con luz mala y pantallas con reflejo.
+ *  - ningun objetivo tactil baja de 44 px (56 en el flujo de conteo);
+ *  - alto contraste, porque hay bodegas con reflejo y otras con sol directo.
  */
 
+/*
+ * PALETA — identidad Colsubsidio sobre base clara.
+ *
+ *   #004B8D  azul de marca      #FFD000  amarillo de marca      blanco
+ *
+ * Base clara y no oscura por la bodega con sol directo: contra un reflejo, un
+ * fondo claro se lee mejor que uno oscuro.
+ *
+ * Dos reglas que salen de medir el contraste, no del gusto:
+ *
+ * 1. EL AMARILLO NO LLEVA TEXTO SOBRE FONDO CLARO. #FFD000 sobre blanco da
+ *    1.47:1 — ilegible para cualquiera. Solo vale como RELLENO con texto
+ *    oscuro encima (#0A2540 sobre amarillo = 10.56:1). Para texto de aviso
+ *    existe `--alerta-texto`, un ambar oscurecido que si pasa (6.14:1).
+ *
+ * 2. EL BLANCO PURO NO ES EL FONDO. #FFFFFF a pantalla completa cansa la vista
+ *    en una jornada de conteo. El fondo es hueso frio (#F4F6FA), afin al azul
+ *    de marca, y conserva AAA contra el azul (8.12:1). El blanco puro queda
+ *    para las tarjetas, que asi se separan del fondo sin necesitar sombra.
+ *
+ * El color aqui SIGNIFICA algo, asi que los tokens son semanticos:
+ *   acento  = marca y accion primaria (Guardar, foco)
+ *   alerta  = requiere atencion (anomalia, merma, sin contar)
+ *   peligro = diferencia negativa, destructivo
+ *
+ * Ya no hay verde: el amarillo de marca ocupa justo el hueco del ambar de
+ * aviso, asi que dejar tambien un verde de exito metia cuatro colores de
+ * estado compitiendo en la misma pantalla.
+ */
 :root {
-  --fondo: #0b1220;
-  --superficie: #131d2f;
-  --superficie-alta: #1c2942;
-  --borde: #2a3a58;
-  --texto: #f1f5f9;
-  --texto-tenue: #94a3b8;
-  --acento: #22c55e;
-  --acento-oscuro: #16a34a;
-  --alerta: #f59e0b;
-  --peligro: #ef4444;
+  --fondo: #f4f6fa;
+  --superficie: #ffffff;
+  --superficie-alta: #e8eef6;
+  /* Agrupacion, decorativo (1.36:1: no delimita nada pulsable por si solo). */
+  --borde: #c9d6e5;
+  /* Contorno de control interactivo: 3.57:1, cumple WCAG 1.4.11. */
+  --borde-fuerte: #6b84a0;
+  --texto: #0a2540;
+  /* 6.26:1 sobre el fondo y 5.80:1 sobre superficie-alta. El tono mas claro
+     que probamos (#5A6E85) caia a 4.49:1 sobre superficie-alta y fallaba. */
+  --texto-tenue: #4a5d72;
+  --acento: #004b8d;
+  --acento-oscuro: #003666;
+  --alerta: #ffd000;
+  --alerta-texto: #7a5600;
+  --peligro: #c0392b;
+
+  /*
+   * Complementarios, derivados de los dos colores de marca. Todos medidos
+   * sobre el fondo hueso:
+   *
+   *   azul-medio  5.17:1   azul secundario, estados intermedios
+   *   azul-tinte    ---    SOLO superficie (7.56:1 contra el azul de marca)
+   *   teal        5.70:1   positivo: "cuadra", "sincronizado"
+   *   naranja     5.79:1   diferencia intermedia, el escalon antes del peligro
+   *
+   * El positivo es teal y no verde a proposito: es analogo al azul de marca,
+   * asi que armoniza en vez de meter un cuarto tono suelto, y ocupa el hueco
+   * que dejo el verde que se quito.
+   */
+  --azul-medio: #1b6ca8;
+  --azul-tinte: #e6eff8;
+  --teal: #0f6e5c;
+  --naranja: #9a4a00;
+  /* Velo de los dialogos: azul de marca translucido, no negro. */
+  --velo: rgb(10 37 64 / 0.45);
 }
 
 html,
@@ -41,14 +97,19 @@ body {
 }
 
 @theme {
-  --color-fondo: #0b1220;
-  --color-superficie: #131d2f;
-  --color-superficie-alta: #1c2942;
-  --color-borde: #2a3a58;
-  --color-tenue: #94a3b8;
-  --color-acento: #22c55e;
-  --color-alerta: #f59e0b;
-  --color-peligro: #ef4444;
+  --color-fondo: #f4f6fa;
+  --color-superficie: #ffffff;
+  --color-superficie-alta: #e8eef6;
+  --color-borde: #c9d6e5;
+  --color-borde-fuerte: #6b84a0;
+  --color-texto: #0a2540;
+  --color-tenue: #4a5d72;
+  --color-acento: #004b8d;
+  --color-alerta: #ffd000;
+  /* Para `text-alerta-texto`: el relleno amarillo no sirve como color de texto
+     sobre fondo claro (1.47:1). Ver la nota de la paleta. */
+  --color-alerta-texto: #7a5600;
+  --color-peligro: #c0392b;
 }
 
 /* Objetivo tactil minimo. Se usa en todo boton del flujo de conteo. */
@@ -202,13 +263,28 @@ body {
 }
 
 .tecla {
-  @apply flex items-center justify-center rounded-xl border border-borde bg-superficie-alta text-2xl font-semibold text-white active:bg-acento active:text-black;
+  @apply flex items-center justify-center rounded-xl border border-borde bg-superficie-alta text-2xl font-semibold text-texto active:bg-acento active:text-white;
   min-height: 64px;
   user-select: none;
 }
 
 .tarjeta {
   @apply rounded-2xl border border-borde bg-superficie p-4;
+}
+
+/*
+ * Teclas dentro del panel azul (el PIN de la pantalla de entrada).
+ *
+ * `.tecla` esta pensada para fondo claro: superficie elevada y digito oscuro.
+ * Sobre el azul de marca eso resultaria en un teclado de bloques claros que
+ * pesa mas que el contenido. Aqui se vuelve translucido con digito blanco:
+ * mismo tamaño y mismo comportamiento, aspecto minimalista.
+ *
+ * Se limita a `.sobre-azul` para no tocar el teclado de `contar`, que si vive
+ * sobre fondo claro.
+ */
+.sobre-azul .tecla {
+  @apply border-white/25 bg-white/10 text-white active:bg-white active:text-acento;
 }
 
 /* El microfono es el elemento mas grande de la pantalla a proposito. */
