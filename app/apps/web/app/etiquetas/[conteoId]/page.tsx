@@ -29,6 +29,22 @@ interface Articulo {
   orden: number;
 }
 
+/**
+ * Qué se codifica dentro del QR.
+ *
+ * Se usa el **número de artículo** siempre que exista: así, escaneada con
+ * cualquier lector del teléfono, la etiqueta muestra `7290` — un dato que se
+ * puede cotejar contra el sistema. Antes se codificaba el identificador
+ * interno y salía una cadena ilegible.
+ *
+ * Los 252 artículos que el sistema origen dejó sin número caen al
+ * identificador interno, que es lo único que los distingue. Ahí el QR sí sale
+ * opaco, pero es eso o no poder etiquetarlos.
+ */
+function contenidoQR(a: Articulo): string {
+  return a.nrArticulo ? a.nrArticulo : `PSL:${a.id}`;
+}
+
 export default function Etiquetas() {
   const { conteoId } = useParams<{ conteoId: string }>();
   const [bodega, setBodega] = useState('');
@@ -47,10 +63,9 @@ export default function Etiquetas() {
 
         const mapa = new Map<string, string>();
         for (const a of cat.articulos) {
-          // Mismo prefijo que reconoce el escaner: PSL:<articuloId>
           mapa.set(
             a.id,
-            await QRCode.toDataURL(`PSL:${a.id}`, {
+            await QRCode.toDataURL(contenidoQR(a), {
               margin: 0,
               width: 160,
               errorCorrectionLevel: 'M',
@@ -99,11 +114,15 @@ export default function Etiquetas() {
               <img src={qrs.get(a.id)} alt="" width={76} height={76} className="shrink-0" />
             )}
             <div className="min-w-0 text-[11px] leading-tight">
-              <p className="font-semibold">{a.nombre.trim()}</p>
-              <p className="text-neutral-600">
-                {ETIQUETA_UNIDAD[a.unidad as Unidad].plural}
-                {a.nrArticulo ? ` · ${a.nrArticulo}` : ''}
-              </p>
+              {/* El número va primero y grande: es lo que se coteja contra el
+                  sistema, y permite verificar la etiqueta sin escanearla. */}
+              {a.nrArticulo ? (
+                <p className="font-mono text-[15px] font-bold leading-none">{a.nrArticulo}</p>
+              ) : (
+                <p className="text-[10px] font-medium text-neutral-500">sin número</p>
+              )}
+              <p className="mt-0.5 font-semibold">{a.nombre.trim()}</p>
+              <p className="text-neutral-600">{ETIQUETA_UNIDAD[a.unidad as Unidad].plural}</p>
             </div>
           </div>
         ))}
