@@ -49,7 +49,7 @@ const cartas = {
   carta4: `<div class="carta">
     <div class="kicker">EQUIPO</div>
     <h1 style="font-size:64px">Hector Romero · Ayrton Santos<br>Gerardo Martinez · Rodrigo Sauceda</h1>
-    <p>No es maqueta: desplegado, con 86 tests unitarios y de API + 9 E2E, PWA en las tablets que ya tienen.</p>
+    <p>No es maqueta: desplegado, con 96 tests unitarios y de API + 9 E2E, PWA en las tablets que ya tienen.</p>
     <div class="nota">Siguiente paso: piloto en Piscilago el próximo cierre de mes.<br>Y de frente: la voz necesita red — por eso nunca es el único camino.</div>
   </div>`,
   panel1: `<div class="panel">
