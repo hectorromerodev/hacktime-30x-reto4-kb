@@ -18,6 +18,8 @@ export interface ArticuloLocal extends ArticuloCatalogo {
   exp10: number | null;
 }
 
+export type TipoCaptura = 'CONTEO' | 'MERMA';
+
 export interface CapturaLocal {
   clientId: string;
   conteoId: string;
@@ -25,6 +27,14 @@ export interface CapturaLocal {
   articuloNombre: string;
   cantidad: number;
   unidad: Unidad;
+  /** CONTEO si no se dice otra cosa. */
+  tipo?: TipoCaptura;
+  /** Obligatorio en merma: 'Vencido', 'Dañado o roto', 'Derrame'… */
+  motivoMerma?: string | null;
+  /** Si el producto dado de baja ya estaba dentro de lo que se contó. */
+  incluidoEnConteo?: boolean | null;
+  /** URL de la evidencia, una vez subida. */
+  fotoUrl?: string | null;
   unidadDicha?: string | null;
   metodo: 'VOZ' | 'TECLADO' | 'CAMARA' | 'BUSQUEDA';
   textoCrudo?: string | null;
@@ -54,11 +64,27 @@ export interface Meta {
   valor: unknown;
 }
 
+/**
+ * Foto de evidencia esperando a que haya red.
+ *
+ * Se guarda aparte de la captura porque pesa: la captura viaja en el lote de
+ * sincronización y la foto se sube por su cuenta, antes. Así una imagen que
+ * falle no bloquea el registro de la merma.
+ */
+export interface FotoPendiente {
+  clientId: string;
+  /** Imagen ya comprimida por el navegador, en base64. */
+  datos: string;
+  tipoContenido: string;
+  creadoEn: string;
+}
+
 class BaseConteo extends Dexie {
   articulos!: Table<ArticuloLocal, string>;
   capturas!: Table<CapturaLocal, string>;
   cola!: Table<EnCola, string>;
   meta!: Table<Meta, string>;
+  fotos!: Table<FotoPendiente, string>;
 
   constructor() {
     super('conteo-piscilago');
@@ -67,6 +93,15 @@ class BaseConteo extends Dexie {
       capturas: 'clientId, conteoId, articuloId, sincronizada, capturadoEn',
       cola: 'clientId, conteoId',
       meta: 'clave',
+    });
+    // v2 añade las fotos de evidencia. Dexie migra solo; lo ya guardado
+    // en la tablet no se pierde.
+    this.version(2).stores({
+      articulos: 'id, nombreNormalizado, familia, orden',
+      capturas: 'clientId, conteoId, articuloId, sincronizada, capturadoEn, tipo',
+      cola: 'clientId, conteoId',
+      meta: 'clave',
+      fotos: 'clientId',
     });
   }
 }

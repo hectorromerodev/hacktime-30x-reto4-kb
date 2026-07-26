@@ -31,7 +31,14 @@ import {
   type Unidad,
 } from '@conteo/core';
 import { api, type Usuario } from '@/lib/api';
-import { db, guardarMeta, type ArticuloLocal, type CapturaLocal } from '@/lib/db';
+import {
+  db,
+  guardarMeta,
+  type ArticuloLocal,
+  type CapturaLocal,
+  type TipoCaptura,
+} from '@/lib/db';
+import { prepararFoto, MOTIVOS_MERMA, type FotoPreparada } from '@/lib/foto';
 import {
   capturar,
   arrancarSincronizacion,
@@ -79,6 +86,32 @@ export default function Contar() {
   const [scoreMatch, setScoreMatch] = useState<number | null>(null);
   const [candidatos, setCandidatos] = useState<Candidato[]>([]);
   const [anomalias, setAnomalias] = useState<Anomalia[] | null>(null);
+
+  // ── Merma ──────────────────────────────────────────────────────────────
+  /** CONTEO cuenta existencias; MERMA da de baja producto que no sirve. */
+  const [tipo, setTipo] = useState<TipoCaptura>('CONTEO');
+  const [motivoMerma, setMotivoMerma] = useState<string | null>(null);
+  const [incluidoEnConteo, setIncluidoEnConteo] = useState(false);
+  const [foto, setFoto] = useState<FotoPreparada | null>(null);
+  const [errorFoto, setErrorFoto] = useState<string | null>(null);
+  const entradaFoto = useRef<HTMLInputElement>(null);
+
+  function limpiarMerma() {
+    setMotivoMerma(null);
+    setIncluidoEnConteo(false);
+    setFoto(null);
+    setErrorFoto(null);
+  }
+
+  async function elegirFoto(archivo: File | undefined) {
+    if (!archivo) return;
+    setErrorFoto(null);
+    try {
+      setFoto(await prepararFoto(archivo));
+    } catch (e) {
+      setErrorFoto(e instanceof Error ? e.message : 'No se pudo procesar la imagen.');
+    }
+  }
   /** Confirmacion de lo ultimo guardado; reemplaza al avance automatico. */
   const [ultimoContado, setUltimoContado] = useState<{
     nombre: string;
@@ -514,6 +547,17 @@ export default function Contar() {
     const valor = Number(cantidad.replace(',', '.'));
     if (!Number.isFinite(valor)) return;
 
+    // ── Merma ────────────────────────────────────────────────────────
+    // Una baja no es un conteo: no se compara contra la escala del sistema
+    // ni compite con otro contador. Dar de baja 900 litros no es una
+    // anomalía, es una noticia. Lo único que se exige es el motivo, porque
+    // sin él el registro no sirve para agrupar después.
+    if (tipo === 'MERMA') {
+      if (!motivoMerma) return;
+      void guardarMerma(valor);
+      return;
+    }
+
     const yaContadoPor = capturas.find(
       (c) => c.articuloId === activo.id && c.usuarioNombre !== usuario.nombre,
     );
@@ -535,6 +579,42 @@ export default function Contar() {
       return;
     }
     void guardar(valor, []);
+  }
+
+  /** Registra una baja. La foto viaja aparte y se sube cuando haya red. */
+  async function guardarMerma(valor: number) {
+    if (!activo || !usuario || !motivoMerma) return;
+
+    await capturar(
+      {
+        clientId: crypto.randomUUID(),
+        conteoId,
+        articuloId: activo.id,
+        articuloNombre: activo.nombre.trim(),
+        cantidad: valor,
+        unidad: activo.unidad as Unidad,
+        tipo: 'MERMA',
+        motivoMerma,
+        incluidoEnConteo,
+        metodo,
+        textoCrudo,
+        anomalias: [],
+        capturadoEn: new Date().toISOString(),
+        usuarioNombre: usuario.nombre,
+        sincronizada: false,
+      },
+      foto ? { datos: foto.datos, tipoContenido: foto.tipoContenido } : undefined,
+    );
+
+    setUltimoContado({
+      nombre: `${activo.nombre.trim()} · baja por ${motivoMerma.toLowerCase()}`,
+      cantidad: valor,
+      unidad: activo.unidad as Unidad,
+    });
+    setCantidad('');
+    setTextoCrudo(null);
+    setActivo(null);
+    limpiarMerma();
   }
 
   async function guardar(valor: number, codigos: string[], motivoElegido?: string | null) {
@@ -740,6 +820,29 @@ export default function Contar() {
           </div>
         )}
 
+        {/* Conteo o baja. Se mantiene entre artículos: quien va dando de baja
+            un lote vencido registra varios seguidos sin volver a cambiar. */}
+        <div className="mb-3 grid grid-cols-2 gap-2">
+          {(['CONTEO', 'MERMA'] as TipoCaptura[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                setTipo(t);
+                if (t === 'CONTEO') limpiarMerma();
+              }}
+              className={`rounded-xl border py-2 text-sm font-medium ${
+                tipo === t
+                  ? t === 'MERMA'
+                    ? 'border-alerta bg-alerta/15 text-alerta'
+                    : 'border-acento bg-acento/15 text-acento'
+                  : 'border-borde text-tenue'
+              }`}
+            >
+              {t === 'CONTEO' ? 'Contar existencias' : 'Registrar merma'}
+            </button>
+          ))}
+        </div>
+
         {activo ? (
           <>
             <div className="mb-3 flex items-end justify-between gap-3">
@@ -758,6 +861,83 @@ export default function Contar() {
                 {cantidad || '0'}
               </p>
             </div>
+
+            {/* ── Datos que solo pide la merma ─────────────────────────── */}
+            {tipo === 'MERMA' && (
+              <div className="mb-3 rounded-xl border border-alerta/40 bg-alerta/5 p-3">
+                <p className="mb-2 text-xs text-tenue">¿Por qué se da de baja?</p>
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {MOTIVOS_MERMA.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setMotivoMerma(m)}
+                      className={`rounded-full border px-3 py-2 text-xs ${
+                        motivoMerma === m
+                          ? 'border-alerta bg-alerta/20 text-alerta'
+                          : 'border-borde text-tenue'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Colsubsidio no aclaró si el producto dañado se retira antes
+                    del conteo. En vez de imponer una regla, se pregunta: con
+                    eso el reporte calcula bien el descuadre. */}
+                <label className="mb-3 flex items-start gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={incluidoEnConteo}
+                    onChange={(e) => setIncluidoEnConteo(e.target.checked)}
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-alerta"
+                  />
+                  <span className="text-tenue">
+                    Este producto <strong className="text-white">ya lo conté</strong> como
+                    existencia (sigue en el estante)
+                  </span>
+                </label>
+
+                {/* Evidencia. Opcional: exigir foto para registrar una baja
+                    haría que la gente simplemente no la registre. */}
+                <input
+                  ref={entradaFoto}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => void elegirFoto(e.target.files?.[0])}
+                />
+                {foto ? (
+                  <div className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={foto.vistaPrevia}
+                      alt="Evidencia"
+                      className="h-16 w-16 rounded-lg object-cover"
+                    />
+                    <div className="min-w-0 flex-1 text-xs text-tenue">
+                      <p className="text-acento">✓ evidencia lista</p>
+                      <p>{Math.round(foto.bytes / 1024)} KB</p>
+                    </div>
+                    <button
+                      onClick={() => setFoto(null)}
+                      className="rounded-lg border border-borde px-3 py-2 text-xs"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => entradaFoto.current?.click()}
+                    className="toque w-full rounded-xl border border-borde text-sm"
+                  >
+                    Tomar foto de evidencia (opcional)
+                  </button>
+                )}
+                {errorFoto && <p className="mt-2 text-xs text-peligro">{errorFoto}</p>}
+              </div>
+            )}
 
             <div className="mb-2 grid grid-cols-4 gap-2">
               {['7', '8', '9', '1', '4', '5', '6', '2', '1', '2', '3', '3'].slice(0, 0)}
@@ -785,11 +965,13 @@ export default function Contar() {
               </Tecla>
               <button
                 onClick={intentarGuardar}
-                disabled={cantidad === ''}
-                className="col-span-2 rounded-xl bg-acento text-lg font-semibold text-black disabled:opacity-40"
+                disabled={cantidad === '' || (tipo === 'MERMA' && !motivoMerma)}
+                className={`col-span-2 rounded-xl text-lg font-semibold text-black disabled:opacity-40 ${
+                  tipo === 'MERMA' ? 'bg-alerta' : 'bg-acento'
+                }`}
                 style={{ minHeight: 64 }}
               >
-                Guardar
+                {tipo === 'MERMA' ? 'Registrar baja' : 'Guardar'}
               </button>
             </div>
 

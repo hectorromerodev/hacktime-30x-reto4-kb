@@ -30,9 +30,15 @@ interface CapturaEntrante {
   deviceId?: string | null;
   /** El contador declaro que es un recuento: reemplaza lo anterior. */
   reemplaza?: boolean;
+  // ── Merma ────────────────────────────────────────────────────────────
+  tipo?: 'CONTEO' | 'MERMA';
+  motivoMerma?: string | null;
+  incluidoEnConteo?: boolean | null;
+  fotoUrl?: string | null;
 }
 
 const METODOS = new Set(['VOZ', 'TECLADO', 'CAMARA', 'BUSQUEDA']);
+const TIPOS = new Set(['CONTEO', 'MERMA']);
 
 export async function rutasCapturas(app: FastifyInstance) {
   app.addHook('preHandler', requiereSesion);
@@ -113,6 +119,44 @@ export async function rutasCapturas(app: FastifyInstance) {
         }
         if (!METODOS.has(c.metodo)) {
           rechazadas.push({ clientId: c.clientId, motivo: 'metodo invalido' });
+          continue;
+        }
+
+        const tipo = c.tipo ?? 'CONTEO';
+        if (!TIPOS.has(tipo)) {
+          rechazadas.push({ clientId: c.clientId, motivo: 'tipo invalido' });
+          continue;
+        }
+        // Una merma sin motivo no sirve para nada: el valor de registrarla
+        // esta en poder agrupar despues por causa.
+        if (tipo === 'MERMA' && !c.motivoMerma) {
+          rechazadas.push({ clientId: c.clientId, motivo: 'la merma necesita un motivo' });
+          continue;
+        }
+
+        // ── Merma: no compite con el conteo ─────────────────────────────
+        // Una baja no es un conteo, asi que ni entra en conflicto con otro
+        // contador ni se compara contra la escala del sistema. Que se den de
+        // baja 900 litros no es una anomalia: es una noticia.
+        if (tipo === 'MERMA') {
+          filas.push({
+            clientId: c.clientId,
+            conteoId,
+            articuloId: c.articuloId,
+            tipo: 'MERMA',
+            motivoMerma: c.motivoMerma,
+            incluidoEnConteo: c.incluidoEnConteo ?? null,
+            fotoUrl: c.fotoUrl ?? null,
+            cantidad: c.cantidad,
+            unidad: c.unidad || stock.articulo.unidad,
+            metodo: c.metodo,
+            textoCrudo: c.textoCrudo ?? null,
+            anomalias: [] as never,
+            usuarioId,
+            deviceId: c.deviceId ?? null,
+            capturadoEn: new Date(c.capturadoEn ?? Date.now()),
+          });
+          aceptadas.push(c.clientId);
           continue;
         }
 

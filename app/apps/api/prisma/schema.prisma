@@ -39,6 +39,14 @@ enum EstadoCaptura {
   ANULADA
 }
 
+/// Que se esta registrando. La merma comparte tabla con el conteo a proposito:
+/// asi hereda la cola sin conexion, la llave de idempotencia, la atribucion y
+/// la trazabilidad, en vez de duplicar toda esa maquinaria en otra tabla.
+enum TipoCaptura {
+  CONTEO
+  MERMA
+}
+
 model Usuario {
   id     String  @id @default(cuid())
   nombre String
@@ -151,6 +159,23 @@ model Captura {
   conteoId   String
   articuloId String
 
+  /// CONTEO por defecto: las capturas que ya existian no cambian de sentido.
+  tipo TipoCaptura @default(CONTEO)
+
+  /// Por que se dio de baja. Lista cerrada en el cliente para poder agrupar
+  /// despues: 'Vencido', 'Danado o roto', 'Derrame', 'Contaminado',
+  /// 'Descompuesto', 'Otro'. Obligatorio cuando tipo = MERMA.
+  motivoMerma String?
+
+  /// Si el producto danado seguia en el estante y por tanto YA entro en lo
+  /// contado. Colsubsidio no aclaro si se retira antes del conteo o no, asi
+  /// que se registran los dos casos en vez de imponer una regla: con eso el
+  /// reporte calcula bien el descuadre sin inventar nada.
+  incluidoEnConteo Boolean?
+
+  /// Evidencia fotografica. Vive fuera de la base (ver `almacen.ts`).
+  fotoUrl String?
+
   cantidad Decimal @db.Decimal(14, 3)
   /// Unidad del catalogo en la que se guarda.
   unidad   String
@@ -189,6 +214,17 @@ model Captura {
 
   @@index([conteoId, articuloId])
   @@index([conteoId, estado])
+}
+
+/// Evidencia fotografica cuando NO hay almacenamiento externo configurado.
+///
+/// Existe para que `docker compose up` funcione sin credenciales de ningun
+/// proveedor: en produccion las fotos van a Spaces y esta tabla queda vacia.
+model Evidencia {
+  clientId      String   @id
+  tipoContenido String
+  datos         Bytes
+  creadoEn      DateTime @default(now())
 }
 
 /// Codigos de barras / QR de estante. El catalogo de Oracle no tiene ID unico

@@ -6,6 +6,7 @@ import { rutasSesion } from './rutas/sesion.ts';
 import { rutasCatalogo } from './rutas/catalogo.ts';
 import { rutasCapturas } from './rutas/capturas.ts';
 import { rutasExportacion } from './rutas/exportacion.ts';
+import { rutasEvidencia } from './rutas/evidencia.ts';
 
 /**
  * Construye la aplicacion sin arrancarla.
@@ -17,8 +18,9 @@ import { rutasExportacion } from './rutas/exportacion.ts';
 export async function crearApp(): Promise<FastifyInstance> {
   const app = Fastify({
     logger: process.env.NODE_ENV === 'test' ? false : { level: process.env.LOG_LEVEL ?? 'info' },
-    // Lotes de sincronizacion tras horas sin red pueden ser grandes.
-    bodyLimit: 8 * 1024 * 1024,
+    // Lotes de sincronizacion tras horas sin red pueden ser grandes, y las
+    // fotos de evidencia viajan en base64 (~33% mas que los bytes crudos).
+    bodyLimit: 12 * 1024 * 1024,
   });
 
   await app.register(cookie);
@@ -39,6 +41,7 @@ export async function crearApp(): Promise<FastifyInstance> {
   await app.register(rutasCatalogo);
   await app.register(rutasCapturas);
   await app.register(rutasExportacion);
+  await app.register(rutasEvidencia);
 
   app.setErrorHandler((error, _req, reply) => {
     app.log.error(error);

@@ -26,6 +26,7 @@ import { prisma, aNumero } from '../db.ts';
 import { requiereSesion } from '../auth.ts';
 
 interface FilaReporte {
+  articuloId: string;
   nrArticulo: string | null;
   nombre: string;
   unidad: string;
@@ -40,6 +41,13 @@ interface FilaReporte {
   anomalias: string[];
   motivos: string[];
   enConflicto: boolean;
+  /** Total dado de baja para este artículo. */
+  merma: number;
+  /**
+   * Lo que queda del descuadre después de descontar la merma documentada.
+   * Es el número que de verdad hay que investigar.
+   */
+  sinExplicar: number | null;
 }
 
 async function armarReporte(conteoId: string) {
@@ -61,7 +69,7 @@ async function armarReporte(conteoId: string) {
     orderBy: { orden: 'asc' },
   });
 
-  const capturas = await prisma.captura.findMany({
+  const todas = await prisma.captura.findMany({
     where: { conteoId, estado: 'ACTIVA' },
     select: {
       articuloId: true,
@@ -75,16 +83,44 @@ async function armarReporte(conteoId: string) {
       enConflicto: true,
       capturadoEn: true,
       scoreMatch: true,
+      tipo: true,
+      motivoMerma: true,
+      incluidoEnConteo: true,
+      fotoUrl: true,
       usuario: { select: { nombre: true } },
     },
     orderBy: { capturadoEn: 'asc' },
   });
+
+  // Las bajas no son conteo: van por su cuenta en todos los cálculos.
+  const capturas = todas.filter((c) => c.tipo !== 'MERMA');
+  const mermas = todas.filter((c) => c.tipo === 'MERMA');
 
   const porArticulo = new Map<string, typeof capturas>();
   for (const c of capturas) {
     const lista = porArticulo.get(c.articuloId) ?? [];
     lista.push(c);
     porArticulo.set(c.articuloId, lista);
+  }
+
+  const mermaPorArticulo = new Map<string, number>();
+  for (const m of mermas) {
+    mermaPorArticulo.set(
+      m.articuloId,
+      (mermaPorArticulo.get(m.articuloId) ?? 0) + aNumero(m.cantidad),
+    );
+  }
+  /**
+   * Merma que YA está dentro de lo contado (el producto dañado seguía en el
+   * estante). Esa parte no explica el faltante: si se restara otra vez, se
+   * contaría dos veces.
+   */
+  const mermaIncluida = new Map<string, number>();
+  for (const m of mermas.filter((x) => x.incluidoEnConteo)) {
+    mermaIncluida.set(
+      m.articuloId,
+      (mermaIncluida.get(m.articuloId) ?? 0) + aNumero(m.cantidad),
+    );
   }
 
   const filas: FilaReporte[] = stocks.map((s) => {
@@ -102,6 +138,7 @@ async function armarReporte(conteoId: string) {
     const porContador = [...acumulado].map(([nombre, cantidad]) => ({ nombre, cantidad }));
 
     return {
+      articuloId: s.articulo.id,
       nrArticulo: s.articulo.nrArticulo,
       nombre: s.articulo.nombre,
       unidad: s.articulo.unidad,
@@ -132,10 +169,29 @@ async function armarReporte(conteoId: string) {
       anomalias: [...new Set(propias.flatMap((c) => (c.anomalias as string[]) ?? []))],
       motivos: propias.map((c) => c.motivoConfirmacion).filter(Boolean) as string[],
       enConflicto,
+      merma: mermaPorArticulo.get(s.articulo.id) ?? 0,
+      sinExplicar: null, // se calcula abajo, cuando ya hay `contado`
     };
   });
 
-  return { conteo, filas, capturas };
+  // El descuadre que la merma NO explica.
+  //
+  //   diferencia = contado − sistema            (negativo = falta producto)
+  //   la merma retirada del estante explica parte de ese faltante
+  //   la merma que seguía en el estante ya entró en `contado`: no se resta
+  //
+  // Con esto, un faltante de 12,59 L del que 12 son un derrame documentado
+  // se convierte en 0,59 L por investigar. Eso es lo que pidió la dueña del
+  // proceso: no una lista de descuadres, sino saber cuáles siguen sin
+  // explicación.
+  for (const f of filas) {
+    if (f.contado === null) continue;
+    const diferencia = f.contado - f.sistema;
+    const mermaQueExplica = f.merma - (mermaIncluida.get(f.articuloId) ?? 0);
+    f.sinExplicar = Number((diferencia + mermaQueExplica).toFixed(3));
+  }
+
+  return { conteo, filas, capturas, mermas };
 }
 
 export async function rutasExportacion(app: FastifyInstance) {
@@ -170,7 +226,21 @@ export async function rutasExportacion(app: FastifyInstance) {
           ? Number((((contadas.length - conDiferencia.length) / contadas.length) * 100).toFixed(1))
           : 0,
         enConflicto: enConflicto.length,
+        // Cuántos descuadres deja de haber que investigar gracias a la merma.
+        articulosConMerma: filas.filter((f) => f.merma > 0).length,
+        descuadresExplicados: conDiferencia.filter((f) => f.sinExplicar === 0).length,
       },
+      mermas: datos.mermas.map((m) => ({
+        articulo:
+          filas.find((f) => f.articuloId === m.articuloId)?.nombre.trim() ?? '',
+        cantidad: aNumero(m.cantidad),
+        unidad: m.unidad,
+        motivo: m.motivoMerma,
+        incluidoEnConteo: m.incluidoEnConteo,
+        fotoUrl: m.fotoUrl,
+        usuario: m.usuario.nombre,
+        capturadoEn: m.capturadoEn,
+      })),
       // Los conflictos van aparte y primero: son lo unico que el lider TIENE
       // que resolver antes de exportar, porque sin decision no hay cantidad.
       conflictos: filas
@@ -190,6 +260,8 @@ export async function rutasExportacion(app: FastifyInstance) {
           sistema: f.sistema,
           contado: f.contado,
           diferencia: Number(((f.contado ?? 0) - f.sistema).toFixed(3)),
+          merma: f.merma,
+          sinExplicar: f.sinExplicar,
           contadores: f.contadores,
           porContador: f.porContador,
           anomalias: f.anomalias,
@@ -232,7 +304,7 @@ export async function rutasExportacion(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>('/conteos/:id/export.xlsx', async (req, reply) => {
     const datos = await armarReporte(req.params.id);
     if (!datos) return reply.code(404).send({ error: 'Conteo no encontrado.' });
-    const { conteo, filas, capturas } = datos;
+    const { conteo, filas, capturas, mermas } = datos;
 
     const libro = new ExcelJS.Workbook();
     libro.creator = 'Conteo de inventarios — Reto 4';
@@ -269,6 +341,8 @@ export async function rutasExportacion(app: FastifyInstance) {
       { header: 'Contado', key: 'con', width: 12 },
       { header: 'Diferencia', key: 'dif', width: 13 },
       { header: 'Dif %', key: 'pct', width: 10 },
+      { header: 'Merma', key: 'merma', width: 12 },
+      { header: 'Sin explicar', key: 'sinexp', width: 14 },
       { header: 'Estado', key: 'est', width: 16 },
       { header: 'Contadores', key: 'quien', width: 26 },
       { header: 'Reportado por cada uno', key: 'detalle', width: 34 },
@@ -287,6 +361,9 @@ export async function rutasExportacion(app: FastifyInstance) {
         dif: dif ?? '',
         pct:
           dif === null || f.sistema === 0 ? '' : Number(((dif / f.sistema) * 100).toFixed(1)),
+        merma: f.merma || '',
+        // Lo que queda por investigar una vez descontada la merma documentada.
+        sinexp: f.sinExplicar === null ? '' : f.sinExplicar,
         est: estado(f, dif),
         quien: f.contadores.join(', '),
         // Solo tiene sentido detallar cuando hay mas de una persona: es lo que
@@ -301,7 +378,42 @@ export async function rutasExportacion(app: FastifyInstance) {
     }
     encabezar(h2);
 
-    // ── Hoja 3: TRAZABILIDAD ───────────────────────────────────────────
+    // ── Hoja 3: MERMA ──────────────────────────────────────────────────
+    // Va antes de la trazabilidad porque es lo que el líder mira: qué se dio
+    // de baja, por qué, quién lo vio y si hay foto que lo respalde.
+    const hMerma = libro.addWorksheet('MERMA');
+    hMerma.columns = [
+      { header: 'Fecha/hora', key: 'ts', width: 22 },
+      { header: 'Nr.Artículo', key: 'nr', width: 14 },
+      { header: 'Artículo', key: 'art', width: 46 },
+      { header: 'Unidad', key: 'un', width: 12 },
+      { header: 'Cantidad dada de baja', key: 'cant', width: 22 },
+      { header: 'Motivo', key: 'mot', width: 20 },
+      { header: '¿Ya estaba en el conteo?', key: 'incl', width: 24 },
+      { header: 'Registró', key: 'quien', width: 22 },
+      { header: 'Evidencia', key: 'foto', width: 60 },
+    ];
+    const nrPorArticulo = new Map(filas.map((f) => [f.articuloId, f.nrArticulo]));
+    const nombrePorArticulo = new Map(filas.map((f) => [f.articuloId, f.nombre.trim()]));
+    for (const m of mermas) {
+      hMerma.addRow({
+        ts: m.capturadoEn.toISOString().replace('T', ' ').slice(0, 19),
+        nr: nrPorArticulo.get(m.articuloId) ?? '',
+        art: nombrePorArticulo.get(m.articuloId) ?? '',
+        un: m.unidad,
+        cant: aNumero(m.cantidad),
+        mot: m.motivoMerma ?? '',
+        incl: m.incluidoEnConteo === null ? '' : m.incluidoEnConteo ? 'Sí' : 'No',
+        quien: m.usuario.nombre,
+        foto: m.fotoUrl ?? '',
+      });
+    }
+    if (mermas.length === 0) {
+      hMerma.addRow({ art: 'Sin mermas registradas en este conteo.' });
+    }
+    encabezar(hMerma);
+
+    // ── Hoja 4: TRAZABILIDAD ───────────────────────────────────────────
     const h3 = libro.addWorksheet('TRAZABILIDAD');
     h3.columns = [
       { header: 'Fecha/hora', key: 'ts', width: 22 },
