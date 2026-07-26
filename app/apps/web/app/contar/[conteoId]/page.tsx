@@ -39,6 +39,7 @@ import {
   type TipoCaptura,
 } from '@/lib/db';
 import { prepararFoto, MOTIVOS_MERMA, type FotoPreparada } from '@/lib/foto';
+import { rangoHabitual } from '@/lib/rangoHabitual';
 import {
   capturar,
   arrancarSincronizacion,
@@ -1371,6 +1372,7 @@ function DialogoAnomalias({
 }) {
   const hayBloqueo = bloquea(anomalias);
   const principal = anomalias[0];
+  const [porQue, setPorQue] = useState(false);
   const correcciones = anomalias.flatMap(
     (a) => a.opciones?.filter((o) => o.accion === 'CORREGIR_A') ?? [],
   );
@@ -1391,15 +1393,33 @@ function DialogoAnomalias({
       <>
         <p className="mb-4 text-sm text-tenue">{principal.mensaje}</p>
 
-          <div className="mb-4 rounded-xl bg-superficie-alta p-4">
-            <p className="text-sm text-tenue">{articulo.nombre.trim()}</p>
-            <p className="text-3xl font-bold tabular-nums">
-              {cantidad.toLocaleString('es-CO')}{' '}
-              <span className="text-base font-normal text-tenue">
-                {etiquetaUnidad(articulo.unidad as Unidad, cantidad)}
-              </span>
-            </p>
+        {/* R8: al marcar un salto de magnitud, explica el rango habitual de la
+            bodega. Viene de main; se conserva sobre la tarjeta rediseñada. */}
+        {principal.codigo === 'R8_SALTO_DE_MAGNITUD' && articulo.exp10 != null && (
+          <div className="mb-4">
+            <button
+              onClick={() => setPorQue((v) => !v)}
+              className="text-xs text-tenue underline underline-offset-2"
+            >
+              ¿Por qué?
+            </button>
+            {porQue && (
+              <p className="mt-1 text-xs text-tenue">
+                En esta bodega suele estar {rangoHabitual(articulo.exp10)}.
+              </p>
+            )}
           </div>
+        )}
+
+        <div className="mb-4 rounded-xl bg-superficie-alta p-4">
+          <p className="text-sm text-tenue">{articulo.nombre.trim()}</p>
+          <p className="text-3xl font-bold tabular-nums">
+            {cantidad.toLocaleString('es-CO')}{' '}
+            <span className="text-base font-normal text-tenue">
+              {etiquetaUnidad(articulo.unidad as Unidad, cantidad)}
+            </span>
+          </p>
+        </div>
 
           {anomalias.length > 1 && (
             <ul className="mb-4 grid gap-1 text-xs text-tenue">
