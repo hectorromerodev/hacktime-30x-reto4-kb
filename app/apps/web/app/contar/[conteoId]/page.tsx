@@ -692,7 +692,7 @@ export default function Contar() {
 
   return (
     <main
-      className="alto-pantalla mx-auto flex max-w-2xl flex-col overflow-hidden"
+      className="alto-pantalla flex flex-col overflow-hidden"
       /*
        * Que panel esta abierto. En pantalla corta la lista se oculta, y el
        * umbral depende del panel porque conteo mide 469 px y merma 739. La

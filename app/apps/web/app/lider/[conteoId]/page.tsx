@@ -164,7 +164,7 @@ export default function Lider() {
   ];
 
   return (
-    <main className="min-alto-pantalla margen-inferior-seguro mx-auto max-w-5xl px-4 py-5">
+    <main className="min-alto-pantalla margen-inferior-seguro px-4 py-5">
       {/*
         En telefono el titulo y la accion NO comparten fila.
         Con "Cerrar conteo" al lado, el nombre de la bodega se truncaba a

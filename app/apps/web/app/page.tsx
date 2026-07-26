@@ -372,9 +372,7 @@ function Marco({ children }: { children: React.ReactNode }) {
         tarjeta blanca con digito oscuro, el mismo que la pantalla de captura.
       */}
       <section className="panel-entrada margen-inferior-seguro min-h-0 flex-1 overflow-y-auto px-5 pt-6 text-texto">
-        <div className="mx-auto flex min-h-full w-full flex-col" style={{ maxWidth: 520 }}>
-          {children}
-        </div>
+        <div className="flex min-h-full w-full flex-col">{children}</div>
       </section>
     </main>
   );
@@ -440,9 +438,7 @@ function MarcoTrabajo({
       </header>
 
       <section className="margen-inferior-seguro min-h-0 flex-1 overflow-y-auto px-5 pt-4">
-        <div className="mx-auto w-full" style={{ maxWidth: 520 }}>
-          {children}
-        </div>
+        <div className="w-full">{children}</div>
       </section>
 
       {confirmando && (
