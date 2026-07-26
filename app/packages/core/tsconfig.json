@@ -10,7 +10,12 @@
     "rootDir": "src",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": false,
+    // El core se consume COMO FUENTE: `exports` apunta a `./src/index.ts` y
+    // tanto Next (web) como `node --experimental-strip-types` (api) transpilan
+    // los `.ts` directamente. No se emite `dist`; este `tsc` es solo el chequeo
+    // de tipos del paquete, y para eso necesita aceptar las importaciones `.ts`.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
     "verbatimModuleSyntax": false
   },
   "include": ["src/**/*.ts"],

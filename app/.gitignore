@@ -12,3 +12,7 @@ out/
 caddy_data/
 caddy_config/
 .vercel
+
+# Salida de Playwright (no es artefacto de código)
+test-results/
+playwright-report/

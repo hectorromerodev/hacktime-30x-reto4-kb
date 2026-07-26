@@ -167,4 +167,16 @@ describe('robustez ante dictado real', () => {
       `variantes: ${JSON.stringify(r.variantesProducto)}`,
     );
   });
+
+  test('unidades sueltas tras el número se guardan como variante, no como nombre', () => {
+    // Ruido real del dictado: la persona repite la unidad ("cinco kilos
+    // litros") sin decir el producto. Esas palabras se apartan como variante de
+    // respaldo en vez de contaminar la búsqueda por nombre.
+    const r = parseEnunciado('cinco kilos litros');
+    assert.equal(r.cantidadTotal, 5);
+    assert.ok(
+      r.variantesProducto.some((v) => v.includes('litros')),
+      `variantes: ${JSON.stringify(r.variantesProducto)}`,
+    );
+  });
 });

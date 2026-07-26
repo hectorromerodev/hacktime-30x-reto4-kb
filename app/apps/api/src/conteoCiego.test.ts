@@ -27,6 +27,7 @@ process.env.NODE_ENV = 'test';
 
 let app: FastifyInstance;
 let cookie = '';
+let cookieLider = '';
 let conteoId = '';
 let bodegaId = '';
 
@@ -43,6 +44,18 @@ before(async () => {
   });
   assert.equal(login.statusCode, 200, login.body);
   cookie = login.headers['set-cookie']!.toString().split(';')[0];
+
+  // El reporte del lider esta protegido con `requiereLider` (devuelve `sd`).
+  // Necesitamos una sesion de lider para probar ese camino sin usar la del
+  // contador, que —correctamente— recibe 403.
+  const lider = await prisma.usuario.findFirstOrThrow({ where: { rol: 'LIDER' } });
+  const loginLider = await app.inject({
+    method: 'POST',
+    url: '/auth/login',
+    payload: { usuarioId: lider.id, pin: lider.pin },
+  });
+  assert.equal(loginLider.statusCode, 200, loginLider.body);
+  cookieLider = loginLider.headers['set-cookie']!.toString().split(';')[0];
 
   // La bodega con inventario mas pequena, para que la prueba sea rapida.
   const bodegas = await prisma.bodega.findMany({
@@ -293,12 +306,23 @@ describe('el reporte del lider SI muestra el sistema (el conteo ya termino)', ()
     const res = await app.inject({
       method: 'GET',
       url: `/conteos/${conteoId}/reporte`,
-      headers: { cookie },
+      headers: { cookie: cookieLider },
     });
     assert.equal(res.statusCode, 200);
     // La duena del negocio pidio exactamente esto: "cuanto subi y cuanto me
     // cargo al sistema". Es una pantalla de cierre, no de captura.
     assert.ok('resumen' in res.json());
     assert.ok(Array.isArray(res.json().diferencias));
+  });
+
+  test('un contador NO puede pedir el reporte: seria una fuga del sistema', async () => {
+    // El reporte devuelve `sd`. Si un contador pudiera pedirlo a mitad del
+    // conteo, veria lo que el sistema espera y el conteo dejaria de ser ciego.
+    const res = await app.inject({
+      method: 'GET',
+      url: `/conteos/${conteoId}/reporte`,
+      headers: { cookie },
+    });
+    assert.equal(res.statusCode, 403, 'el contador deberia recibir 403, no el reporte');
   });
 });

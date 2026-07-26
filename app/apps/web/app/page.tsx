@@ -144,7 +144,12 @@ export default function Inicio() {
 
         <div className="grid grid-cols-3 gap-3">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-            <button key={d} className="tecla" onClick={() => enviarPin(pin + d)}>
+            <button
+              key={d}
+              data-testid={`tecla-${d}`}
+              className="tecla"
+              onClick={() => enviarPin(pin + d)}
+            >
               {d}
             </button>
           ))}
@@ -157,7 +162,7 @@ export default function Inicio() {
           >
             Atrás
           </button>
-          <button className="tecla" onClick={() => enviarPin(pin + '0')}>
+          <button data-testid="tecla-0" className="tecla" onClick={() => enviarPin(pin + '0')}>
             0
           </button>
           <button className="tecla text-base" onClick={() => setPin(pin.slice(0, -1))}>

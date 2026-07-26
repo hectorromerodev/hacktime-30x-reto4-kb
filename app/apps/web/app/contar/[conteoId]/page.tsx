@@ -746,6 +746,7 @@ export default function Contar() {
         </div>
 
         <input
+          data-testid="buscar-articulo"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar artículo…"
@@ -759,6 +760,7 @@ export default function Contar() {
             return (
               <li key={a.id}>
                 <button
+                  data-testid="fila-articulo"
                   onClick={() => elegirArticulo(a)}
                   className={`toque flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left ${
                     esActivo
@@ -965,6 +967,7 @@ export default function Contar() {
                 +½
               </Tecla>
               <button
+                data-testid="btn-guardar"
                 onClick={intentarGuardar}
                 disabled={cantidad === '' || (tipo === 'MERMA' && !motivoMerma)}
                 className={`col-span-2 rounded-xl text-lg font-semibold text-black disabled:opacity-40 ${
@@ -1142,7 +1145,17 @@ function Tecla({
   tenue?: boolean;
 }) {
   return (
-    <button onClick={onClick} className={`tecla ${tenue ? 'text-tenue' : ''}`}>
+    <button
+      onClick={onClick}
+      // Cada tecla queda direccionable por su valor (`tecla-5`, `tecla-0`, …)
+      // sin depender de la clase CSS, que es de estilo, no de identidad.
+      data-testid={
+        typeof children === 'string' || typeof children === 'number'
+          ? `tecla-${children}`
+          : undefined
+      }
+      className={`tecla ${tenue ? 'text-tenue' : ''}`}
+    >
       {children}
     </button>
   );

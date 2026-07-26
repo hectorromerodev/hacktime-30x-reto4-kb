@@ -31,11 +31,11 @@ test.describe('Ingreso', () => {
 
   test('PIN incorrecto muestra error', async ({ page }) => {
     await page.goto('/');
-    await page.getByText('Ana Gómez').click();
+    await page.getByRole('button', { name: /Ana Gómez/ }).click();
 
     // PIN equivocado
     for (const d of ['2', '2', '2', '2']) {
-      await page.locator('.tecla').filter({ hasText: d }).click();
+      await page.getByTestId(`tecla-${d}`).click();
     }
 
     await expect(page.getByText('PIN incorrecto')).toBeVisible();
@@ -43,9 +43,9 @@ test.describe('Ingreso', () => {
 
   test('botón Atrás vuelve a selección de usuario', async ({ page }) => {
     await page.goto('/');
-    await page.getByText('Ana Gómez').click();
+    await page.getByRole('button', { name: /Ana Gómez/ }).click();
 
-    await page.getByText('Atrás').click();
+    await page.getByRole('button', { name: 'Atrás' }).click();
     await expect(page.getByText('¿Quién va a contar?')).toBeVisible();
   });
 });

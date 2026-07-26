@@ -93,3 +93,17 @@ describe('tokenizar', () => {
     assert.deepEqual(tokenizar(''), []);
   });
 });
+
+describe('robustez ante datos nulos del catálogo', () => {
+  // El Excel real trae filas con el nombre vacío o ausente. Estas funciones
+  // corren sobre CADA fila del catálogo: si una explotara con null, el import
+  // entero se caería. El guardado `?? ''` existe justo para eso.
+  test('nombre ausente no rompe la normalización', () => {
+    assert.equal(quitarAcentos(undefined as unknown as string), '');
+    assert.equal(normalizar(undefined as unknown as string), '');
+    const r = descomponerNombre(undefined as unknown as string);
+    assert.equal(r.normalizado, '');
+    assert.equal(r.prefijo, null);
+    assert.equal(r.calificador, null);
+  });
+});
