@@ -287,18 +287,48 @@ contenedor es seguro. Con `--reset` sí vacía y recarga.
 | API | Render, contenedor Docker | Blueprint en [`render.yaml`](../render.yaml) |
 | Base | Neon, Postgres 18 | `DATABASE_URL` se pega a mano en el panel de Render |
 
-> ⚠ **El auto-deploy de Render no dispara.** El servicio se creó por API contra un
-> repositorio público, así que GitHub no tiene webhook instalado y `autoDeploy: true` no
-> sirve de nada: se queda en el commit con el que se creó. **Después de cada push hay que
-> lanzar el despliegue a mano**, desde el panel (*Manual Deploy*) o por API:
->
-> ```bash
-> curl -X POST -H "Authorization: Bearer $RENDER_API_KEY" \
->   https://api.render.com/v1/services/<serviceId>/deploys -d '{}'
-> ```
->
-> Se detecta rápido: la web publica al instante y la API se queda vieja, así que aparecen
-> 404 en rutas que sí existen en el código.
+### Desplegar
+
+**Automático.** Cada push a `main` que toque `app/` publica las dos partes, mediante
+[`.github/workflows/desplegar.yml`](../.github/workflows/desplegar.yml). Necesita cuatro
+secretos en el repositorio (*Settings → Secrets and variables → Actions*):
+
+| Secreto | De dónde sale |
+|---|---|
+| `VERCEL_TOKEN` | vercel.com/account/tokens |
+| `VERCEL_ORG_ID` | `prj`/`team` del proyecto — ver `vercel project ls` |
+| `VERCEL_PROJECT_ID` | ídem |
+| `RENDER_API_KEY` | dashboard.render.com/u/settings#api-keys |
+
+**A mano**, desde `app/`:
+
+```bash
+./desplegar.sh          # las dos
+./desplegar.sh web      # solo el frontend
+./desplegar.sh api      # solo el backend
+```
+
+O directamente con el CLI de Vercel:
+
+```bash
+npx vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN" --build-env NEXT_PUBLIC_API_URL=/api --build-env ORIGEN_API_INTERNO=https://conteo-inventarios-api.onrender.com
+```
+
+> **Las dos variables de build no son opcionales.** Se hornean en el bundle: sin ellas el
+> frontend se publica apuntando a ninguna parte, y el fallo no aparece hasta que alguien
+> intenta entrar.
+
+Y la API por su API:
+
+```bash
+curl -X POST -H "Authorization: Bearer $RENDER_API_KEY" https://api.render.com/v1/services/srv-d9ifao37uimc73bgbotg/deploys -d '{}'
+```
+
+> ⚠ **El `autoDeploy` de Render no dispara por su cuenta.** El servicio se creó por API
+> contra un repositorio público, así que GitHub no tiene webhook instalado. Por eso el
+> despliegue de la API se lanza desde GitHub Actions o a mano. Si se olvida, se nota
+> enseguida: la web se actualiza al instante y la API devuelve **404 en rutas que sí están
+> en el código**.
 
 ### Datos para grabar el video
 

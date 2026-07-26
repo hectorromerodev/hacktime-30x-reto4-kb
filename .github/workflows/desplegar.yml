@@ -1,0 +1,154 @@
+name: Desplegar a producción
+
+# Cada push a main publica la web en Vercel y la API en Render.
+#
+# Se hace desde aquí y no con las integraciones nativas por un motivo concreto:
+# el servicio de Render se creó por API contra un repositorio público, así que
+# GitHub no tiene webhook instalado y su `autoDeploy` nunca dispara. Con esto,
+# las dos partes salen a la vez y no puede pasar lo de siempre — que la web se
+# actualice y la API se quede vieja, devolviendo 404 en rutas que sí existen
+# en el código.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Solo cuando cambia la aplicación o este propio flujo. Editar
+      # documentación o investigación no debería republicar nada.
+      - 'app/**'
+      - 'datos/**'
+      - '.github/workflows/desplegar.yml'
+  workflow_dispatch: # también a mano, desde la pestaña Actions
+
+concurrency:
+  # Si llegan dos push seguidos, solo interesa publicar el último.
+  group: produccion
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Frontend → Vercel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Publicar
+        working-directory: app
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@latest deploy --prod --yes \
+            --token "$VERCEL_TOKEN" \
+            --build-env NEXT_PUBLIC_API_URL=/api \
+            --build-env ORIGEN_API_INTERNO=https://conteo-inventarios-api.onrender.com
+
+  api:
+    name: Backend → Render
+    runs-on: ubuntu-latest
+    steps:
+      - name: Lanzar el despliegue y esperar a que quede vivo
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICIO: ${{ vars.RENDER_SERVICE_ID || 'srv-d9ifao37uimc73bgbotg' }}
+        run: |
+          set -euo pipefail
+          dep=$(curl -sf -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/$SERVICIO/deploys" -d '{}' \
+            | tr -d '\n' | grep -o '"id":"dep-[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "despliegue $dep"
+
+          # Se espera de verdad: la API aplica las migraciones de base de datos
+          # al arrancar, así que dar por bueno el paso sin comprobarlo dejaría
+          # pasar un esquema a medio migrar.
+          for _ in $(seq 1 40); do
+            estado=$(curl -sf -H "Authorization: Bearer $RENDER_API_KEY" \
+              "https://api.render.com/v1/services/$SERVICIO/deploys/$dep" \
+              | tr -d '\n' | grep -o '"status":"[a-z_]*"' | head -1 | cut -d'"' -f4)
+            echo "  $estado"
+            case "$estado" in
+              live) exit 0 ;;
+              build_failed|update_failed|canceled) exit 1 ;;
+            esac
+            sleep 20
+          done
+          echo "agotado el tiempo de espera"
+          exit 1
+
+  verificar:
+    name: Comprobar que responde
+    needs: [web, api]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Salud de los dos servicios
+        run: |
+          set -euo pipefail
+          web=$(curl -s -o /dev/null -w '%{http_code}' https://conteo-inventarios.vercel.app/)
+          api=$(curl -s -o /dev/null -w '%{http_code}' https://conteo-inventarios-api.onrender.com/salud)
+          echo "web $web · api $api"
+          [ "$web" = "200" ] && [ "$api" = "200" ]
+
+      - name: El conteo sigue siendo ciego
+        # Comprobación de humo sobre lo único que no puede romperse nunca: si
+        # el catálogo empezara a devolver `sd`, el despliegue queda en rojo.
+        # Se hace con Node y no encadenando greps: una cadena de greps sobre
+        # JSON falla en silencio y da un verde que no significa nada.
+        run: |
+          node --input-type=module -e '
+            const BASE = "https://conteo-inventarios.vercel.app";
+            const galleta = { valor: "" };
+
+            async function pedir(ruta, opciones = {}) {
+              const res = await fetch(BASE + ruta, {
+                ...opciones,
+                headers: {
+                  ...(opciones.body ? { "content-type": "application/json" } : {}),
+                  ...(galleta.valor ? { cookie: galleta.valor } : {}),
+                },
+              });
+              const puesta = res.headers.get("set-cookie");
+              if (puesta) galleta.valor = puesta.split(";")[0];
+              if (!res.ok) throw new Error(ruta + " respondió " + res.status);
+              return res;
+            }
+
+            const { usuarios } = await (await pedir("/api/usuarios")).json();
+            const contador = usuarios.find((u) => u.rol === "CONTADOR");
+            await pedir("/api/auth/login", {
+              method: "POST",
+              body: JSON.stringify({ usuarioId: contador.id, pin: "1111" }),
+            });
+
+            const { bodegas } = await (await pedir("/api/bodegas")).json();
+            const bodega = bodegas.find((b) => b.tieneInventario);
+            const { conteo } = await (
+              await pedir("/api/conteos", {
+                method: "POST",
+                body: JSON.stringify({ bodegaId: bodega.id }),
+              })
+            ).json();
+
+            const crudo = await (
+              await pedir("/api/conteos/" + conteo.id + "/catalogo")
+            ).text();
+
+            if (/"sd"\s*:/i.test(crudo)) {
+              console.error("FUGA: el catálogo devolvió la cantidad del sistema");
+              process.exit(1);
+            }
+            const datos = JSON.parse(crudo);
+            if (!("exp10" in (datos.articulos[0] ?? {}))) {
+              console.error("falta exp10: la detección sin red no funcionaría");
+              process.exit(1);
+            }
+            console.log(
+              "ok · " + datos.articulos.length + " artículos, sin sd, con exp10",
+            );
+          '
