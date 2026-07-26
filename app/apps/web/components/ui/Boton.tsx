@@ -26,9 +26,9 @@ export function Boton({
   onClick?: () => void;
   /**
    * `primario` accion principal (azul) · `atencion` merma y bajas (amarillo) ·
-   * `contorno` accion secundaria · `plano` terciaria, sin contorno.
+   * `peligro` destructivo · `contorno` accion secundaria · `plano` terciaria.
    */
-  variante?: 'primario' | 'atencion' | 'contorno' | 'plano';
+  variante?: 'primario' | 'atencion' | 'peligro' | 'contorno' | 'plano';
   ancho?: boolean;
   desactivado?: boolean;
   tipo?: 'button' | 'submit';
@@ -38,8 +38,19 @@ export function Boton({
   const estilos: Record<string, string> = {
     primario: 'bg-acento font-semibold text-white active:bg-[var(--acento-oscuro)]',
     atencion: 'bg-alerta font-semibold text-texto active:brightness-95',
+    // Blanco sobre #C0392B da 5.44:1 (AA). Se reserva a lo que destruye algo:
+    // aqui, terminar la sesion y obligar a volver a teclear el PIN.
+    peligro: 'bg-peligro font-semibold text-white active:brightness-90',
+    /*
+     * `contorno` y `plano` llevan color de texto EXPLICITO.
+     *
+     * Antes solo declaraban borde y grosor, asi que heredaban el color del
+     * contenedor. Dentro de una hoja blanca montada en una pantalla azul eso
+     * salia blanco sobre blanco: el boton existia y no se veia. Un boton no
+     * puede depender de donde lo pongan para ser legible.
+     */
     contorno:
-      'border border-borde-fuerte font-medium active:border-acento active:bg-acento/10',
+      'border border-borde-fuerte font-medium text-texto active:border-acento active:bg-acento/10',
     plano: 'text-tenue active:bg-superficie-alta',
   };
 

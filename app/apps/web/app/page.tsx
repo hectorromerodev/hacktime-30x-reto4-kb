@@ -12,8 +12,28 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, type Bodega, type Usuario } from '@/lib/api';
 import { db, guardarMeta } from '@/lib/db';
+import { agruparBodegas } from '@/lib/bodegas';
+import { Hoja } from '@/components/ui/Hoja';
+import { Boton } from '@/components/ui/Boton';
 
 type Paso = 'cargando' | 'usuario' | 'pin' | 'bodega';
+
+/**
+ * ¿Se listan las bodegas del parque que NO traen hoja de stock?
+ *
+ * Estaban visibles a proposito: el archivo de Colsubsidio nombra las bodegas
+ * del parque pero solo 8 traen stock, y mostrarlas evitaba dar la impresion de
+ * que la solucion cubre solo una parte. `PLAN_HACKATHON.md` lo recoge como
+ * limitacion declarada, y el README lo usa como argumento.
+ *
+ * Se apagan por decision de producto: 46 nombres que no se pueden tocar debajo
+ * de las 8 que si, en una pantalla de telefono, pesan mas de lo que aclaran.
+ *
+ * El bloque se conserva entero y se enciende poniendo esto en `true`. Va como
+ * constante y no comentando el JSX para que el bloque siga compilando y no se
+ * podrezca: codigo comentado deja de tipar el dia que cambia `Bodega`.
+ */
+const MOSTRAR_BODEGAS_SIN_INVENTARIO: boolean = false;
 
 export default function Inicio() {
   const router = useRouter();
@@ -25,6 +45,8 @@ export default function Inicio() {
   const [yo, setYo] = useState<Usuario | null>(null);
   const [bodegas, setBodegas] = useState<Bodega[]>([]);
   const [abriendo, setAbriendo] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState('');
+  const [confirmandoSalida, setConfirmandoSalida] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -71,7 +93,7 @@ export default function Inicio() {
     }
   }
 
-  async function abrirConteo(bodega: Bodega) {
+  async function abrirConteo(bodega: { id: string }) {
     setAbriendo(bodega.id);
     try {
       const r = await api<{ conteo: { id: string } }>('/conteos', {
@@ -92,7 +114,7 @@ export default function Inicio() {
   if (paso === 'cargando') {
     return (
       <Marco>
-        <p className="text-white/70">Cargando…</p>
+        <p className="text-sobre-azul">Cargando…</p>
       </Marco>
     );
   }
@@ -126,10 +148,31 @@ export default function Inicio() {
   if (paso === 'pin') {
     return (
       <Marco>
-        <p className="text-sm text-white/70">Hola, {elegido?.nombre}</p>
-        <Titulo>Ingresa tu PIN</Titulo>
+        {/*
+          Quien eres es lo primero y lo mas grande de la pantalla.
+          Antes "Hola, Ana Gómez" iba en texto pequeño y atenuado y el titular
+          era "Ingresa tu PIN" — pero que hay que teclear el PIN ya lo dice el
+          teclado. Lo que de verdad hay que poder comprobar de un vistazo, antes
+          de teclear nada, es que se eligio a la persona correcta. Con la
+          inicial repetida de la pantalla anterior, un usuario equivocado se
+          nota sin leer.
+        */}
+        <div className="text-center">
+          <span
+            aria-hidden
+            className="avatar-pin mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 text-lg font-bold"
+          >
+            {iniciales(elegido?.nombre ?? '')}
+          </span>
+          <p className="mt-3 text-sm text-sobre-azul">Hola,</p>
+          <p className="text-2xl font-bold leading-tight">{elegido?.nombre}</p>
+          <p className="mt-3 text-sm text-sobre-azul">Ingresa tu PIN</p>
+        </div>
 
-        <div className="mb-5 flex justify-center gap-3" aria-label={`${pin.length} de 4 dígitos`}>
+        <div
+          className="puntos-pin mb-5 mt-4 flex justify-center gap-3"
+          aria-label={`${pin.length} de 4 dígitos`}
+        >
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
@@ -144,87 +187,127 @@ export default function Inicio() {
 
         {error && <Aviso>{error}</Aviso>}
 
-        <div className="mt-auto grid grid-cols-3 gap-2 pb-2">
+        <div className="mt-auto grid grid-cols-3 gap-2">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
             <button key={d} className="tecla" onClick={() => enviarPin(pin + d)}>
               {d}
             </button>
           ))}
-          <button
-            className="tecla text-base"
-            onClick={() => {
-              setPaso('usuario');
-              setPin('');
-            }}
-          >
-            Atrás
-          </button>
+          {/*
+            Hueco a la izquierda del cero, como en el teclado del telefono.
+            Antes esa celda era "Atrás": una accion de navegacion mezclada entre
+            los digitos, del mismo tamaño y peso que un 7. Ahi se pulsa por
+            error y, peor, no se encuentra cuando se busca. Ahora vive abajo
+            como accion secundaria propia.
+          */}
+          <span aria-hidden />
           <button className="tecla" onClick={() => enviarPin(pin + '0')}>
             0
           </button>
-          <button className="tecla text-base" onClick={() => setPin(pin.slice(0, -1))}>
+          <button
+            className="tecla text-base"
+            onClick={() => setPin(pin.slice(0, -1))}
+            aria-label="Borrar el último dígito"
+          >
             ⌫
           </button>
         </div>
+
+        {/*
+          Salida secundaria: si el PIN es correcto se pasa solo, asi que este
+          boton solo hace falta cuando se eligio a la persona equivocada. Por eso
+          es plano y no compite con el teclado, pero ocupa el ancho completo y
+          los 56 px de `.toque`: es una salida, no un adorno.
+        */}
+        <button
+          onClick={() => {
+            setPaso('usuario');
+            setPin('');
+            setError(null);
+          }}
+          className="toque mt-2 w-full rounded-xl text-base font-medium text-sobre-azul underline decoration-white/30 underline-offset-4 transition-colors active:bg-white/10"
+        >
+          Regresar
+        </button>
       </Marco>
     );
   }
 
   const conInventario = bodegas.filter((b) => b.tieneInventario);
   const sinInventario = bodegas.filter((b) => !b.tieneInventario);
+  const grupos = agruparBodegas(conInventario, filtro);
 
   return (
-    <Marco>
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <p className="flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold text-white"
-          >
-            {iniciales(yo?.nombre ?? '')}
-          </span>
-          <span className="min-w-0 truncate text-sm text-white/70">
-            {yo?.nombre} · {yo?.rol === 'LIDER' ? 'líder de costos' : 'contador'}
-          </span>
-        </p>
-        <button
-          className="toque-menor shrink-0 rounded-xl px-3 text-sm text-white/80 underline transition-colors active:bg-white/10"
-          onClick={async () => {
-            await api('/auth/logout', { method: 'POST' });
-            location.reload();
-          }}
-        >
-          Salir
-        </button>
+    <MarcoTrabajo
+      usuario={yo}
+      onCerrarSesion={() => setConfirmandoSalida(true)}
+      confirmando={confirmandoSalida}
+      onCancelar={() => setConfirmandoSalida(false)}
+    >
+      <Titulo>Elige la bodega a contar</Titulo>
+
+      {/*
+        Buscador fijo. Con ocho bodegas no es imprescindible, pero el archivo
+        de Colsubsidio nombra 54 y el dia que lleguen sus hojas de stock esta
+        pantalla no habra que rehacerla. Se queda pegado arriba al desplazar:
+        si hay que desplazar para ver una bodega, tambien hay que poder filtrar
+        sin volver al principio.
+      */}
+      {/* Sin margen negativo: `-mx-1` sacaba el contenedor 2 px por cada lado y
+          desbordaba el panel. No hace falta tapar los margenes laterales — las
+          filas no tienen fondo propio, ahi solo hay azul. */}
+      <div className="sticky top-0 z-10 mb-4 bg-acento pb-2 pt-1">
+        <input
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          placeholder="Buscar bodega…"
+          aria-label="Buscar bodega"
+          className="toque w-full rounded-xl border border-white/30 bg-white/10 px-4 text-base text-white placeholder:text-sobre-azul outline-none focus:border-alerta focus:bg-white/15"
+        />
       </div>
 
-      <Titulo>Elige la bodega a contar</Titulo>
       {error && <Aviso>{error}</Aviso>}
 
-      <Lista>
-        {conInventario.map((b) => (
-          <Fila
-            key={b.id}
-            onClick={() => abrirConteo(b)}
-            desactivado={abriendo !== null}
-            titulo={b.nombre}
-            detalle={`${b.articulos} artículos en catálogo`}
-            flecha={abriendo === b.id ? '…' : '→'}
-          />
-        ))}
-      </Lista>
+      {grupos.length === 0 ? (
+        <p className="rounded-xl bg-white/10 px-4 py-6 text-center text-sm text-sobre-azul">
+          Ninguna bodega coincide con «{filtro}».
+        </p>
+      ) : (
+        grupos.map((g) => (
+          <section key={g.sitio} className="mb-5">
+            {/*
+              El sitio como agrupador, no como parte de cada nombre. Los ocho
+              nombres reales son "sitio + resto + tipo" sin excepcion, asi que
+              agrupar por sitio deja la pantalla organizada como el recorrido
+              de la persona: se va A un sitio, y alli hay una o dos bodegas.
+            */}
+            <h3 className="mb-1 flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-sobre-azul">
+              {g.sitio}
+              <span className="font-normal text-sobre-azul">· {g.bodegas.length}</span>
+            </h3>
+            <Lista>
+              {g.bodegas.map((b) => (
+                <Fila
+                  key={b.id}
+                  onClick={() => abrirConteo(b)}
+                  desactivado={abriendo !== null}
+                  titulo={b.titulo}
+                  distintivo={b.distintivo}
+                  detalle={`${b.articulos.toLocaleString('es-CO')} artículos`}
+                  flecha={abriendo === b.id ? '…' : '→'}
+                />
+              ))}
+            </Lista>
+          </section>
+        ))
+      )}
 
-      {sinInventario.length > 0 && (
+      {MOSTRAR_BODEGAS_SIN_INVENTARIO && sinInventario.length > 0 && (
         <details className="mt-5 border-t border-white/15 pt-3">
-          <summary className="toque-menor flex cursor-pointer items-center text-sm text-white/70">
+          <summary className="toque-menor flex cursor-pointer items-center text-sm text-sobre-azul">
             Otras {sinInventario.length} bodegas del parque (sin inventario en el archivo)
           </summary>
-          {/*
-            Se listan a proposito. El archivo de Colsubsidio nombra las bodegas
-            del parque pero solo 8 traen hoja de stock; ocultarlas daria la
-            impresion de que la solucion solo cubre una parte.
-          */}
-          <ul className="mt-2 grid grid-cols-1 gap-1 text-sm text-white/60">
+          <ul className="mt-2 grid grid-cols-1 gap-1 text-sm text-sobre-azul">
             {sinInventario.map((b) => (
               <li key={b.id} className="truncate">
                 · {b.nombre}
@@ -233,7 +316,7 @@ export default function Inicio() {
           </ul>
         </details>
       )}
-    </Marco>
+    </MarcoTrabajo>
   );
 }
 
@@ -266,7 +349,7 @@ function iniciales(nombre: string) {
 function Marco({ children }: { children: React.ReactNode }) {
   return (
     <main className="alto-pantalla flex flex-col overflow-hidden bg-superficie">
-      <header className="shrink-0 px-5 pb-6 pt-10 text-center">
+      <header className="marca-entrada shrink-0 px-5 pb-6 pt-10 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/Logo.webp"
@@ -290,6 +373,93 @@ function Marco({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </section>
+    </main>
+  );
+}
+
+/**
+ * Marco del paso de bodegas: barra de sesion en vez del hero con logo.
+ *
+ * Aqui el logo no aporta y cuesta caro. Medido en la version anterior: el hero
+ * ocupaba 207 px en un telefono de 844 — un 25% de la pantalla — mientras solo
+ * 4 de las 8 bodegas quedaban visibles sin desplazar, y en un iPhone SE, 3. El
+ * logo ya cumplio su trabajo en el ingreso; repetirlo en la pantalla siguiente
+ * no dice nada nuevo y empuja el contenido bajo el pliegue.
+ *
+ * La barra de 56 px conserva la marca por el color y el filete amarillo, y usa
+ * ese espacio para lo que aqui SI hace falta: quien esta dentro y como salir.
+ */
+function MarcoTrabajo({
+  children,
+  usuario,
+  onCerrarSesion,
+  confirmando,
+  onCancelar,
+}: {
+  children: React.ReactNode;
+  usuario: Usuario | null;
+  onCerrarSesion: () => void;
+  confirmando: boolean;
+  onCancelar: () => void;
+}) {
+  async function cerrarSesion() {
+    await api('/auth/logout', { method: 'POST' });
+    location.reload();
+  }
+
+  return (
+    <main className="alto-pantalla flex flex-col overflow-hidden bg-acento text-white">
+      <header className="flex shrink-0 items-center gap-3 border-b-[3px] border-b-alerta px-4 py-2">
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold"
+        >
+          {iniciales(usuario?.nombre ?? '')}
+        </span>
+        <span className="min-w-0 flex-1 leading-tight">
+          <span className="block truncate text-sm font-medium">{usuario?.nombre}</span>
+          <span className="block truncate text-xs text-sobre-azul">
+            {usuario?.rol === 'LIDER' ? 'líder de costos' : 'contador'}
+          </span>
+        </span>
+        {/*
+          Etiqueta explicita, no "Salir". Y con confirmacion: antes cerraba la
+          sesion en el acto, asi que un toque en falso obligaba a volver a
+          elegir usuario y teclear el PIN. En un dispositivo compartido de
+          bodega ese roce se paga varias veces al dia.
+        */}
+        <button
+          onClick={onCerrarSesion}
+          className="toque-menor shrink-0 rounded-xl border border-white/30 px-3 text-xs font-medium transition-colors active:bg-white/15"
+        >
+          Cerrar sesión
+        </button>
+      </header>
+
+      <section className="margen-inferior-seguro min-h-0 flex-1 overflow-y-auto px-5 pt-4">
+        <div className="mx-auto w-full" style={{ maxWidth: 520 }}>
+          {children}
+        </div>
+      </section>
+
+      {confirmando && (
+        <Hoja titulo={`¿Cerrar la sesión de ${usuario?.nombre}?`} onCerrar={onCancelar}>
+          <p className="mb-4 text-sm text-tenue">
+            Tendrás que elegir tu usuario y teclear el PIN otra vez. Lo que ya contaste queda
+            guardado.
+          </p>
+          <div className="grid gap-2">
+            <Boton variante="peligro" ancho onClick={cerrarSesion}>
+              Cerrar sesión
+            </Boton>
+            {/* Cancelar de segundo: la accion segura no debe ser la que cae
+                bajo el pulgar por defecto en un dialogo destructivo. */}
+            <Boton variante="contorno" ancho onClick={onCancelar}>
+              Cancelar
+            </Boton>
+          </div>
+        </Hoja>
+      )}
     </main>
   );
 }
@@ -319,6 +489,7 @@ function Fila({
   flecha = '→',
   desactivado,
   destacado,
+  distintivo,
 }: {
   onClick: () => void;
   inicial?: string;
@@ -328,6 +499,8 @@ function Fila({
   desactivado?: boolean;
   /** Resalta el detalle en amarillo. Solo para lo excepcional. */
   destacado?: boolean;
+  /** Etiqueta corta junto al titulo: el tipo de bodega. */
+  distintivo?: string | null;
 }) {
   return (
     <li className="border-b border-white/15 last:border-0">
@@ -346,7 +519,22 @@ function Fila({
           </span>
         )}
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">{titulo}</span>
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-medium">{titulo}</span>
+            {/*
+              El tipo (AyB / Suministros) como etiqueta y no dentro del nombre:
+              es lo que distingue dos bodegas del MISMO sitio, asi que conviene
+              que se lea de un golpe y no al final de una frase larga.
+
+              Sin `uppercase`: "AyB" es una sigla (alimentos y bebidas) y
+              forzarla a mayusculas la escribe mal, "AYB".
+            */}
+            {distintivo && (
+              <span className="shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-white">
+                {distintivo}
+              </span>
+            )}
+          </span>
           {/*
             El amarillo marca la EXCEPCION, no la regla.
             Puesto en cada detalle, "contador" repetido tres veces se volvia lo
@@ -357,13 +545,13 @@ function Fila({
           */}
           <span
             className={`block truncate text-xs ${
-              destacado ? 'font-semibold text-alerta' : 'text-white/60'
+              destacado ? 'font-semibold text-alerta' : 'text-sobre-azul'
             }`}
           >
             {detalle}
           </span>
         </span>
-        <span aria-hidden className="shrink-0 text-lg text-white/70">
+        <span aria-hidden className="shrink-0 text-lg text-sobre-azul">
           {flecha}
         </span>
       </button>

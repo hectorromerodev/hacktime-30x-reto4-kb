@@ -110,6 +110,20 @@ body {
      sobre fondo claro (1.47:1). Ver la nota de la paleta. */
   --color-alerta-texto: #7a5600;
   --color-peligro: #c0392b;
+
+  /*
+   * Texto secundario SOBRE el azul de marca.
+   *
+   * Sustituye a las opacidades del blanco, que parecian inofensivas y no lo
+   * eran: medido, `text-white/60` sobre #004B8D da 4.20:1 y `white/40` da
+   * 2.70:1 — los dos por debajo del minimo de 4.5. El problema de la opacidad
+   * es que el resultado depende de lo que haya DEBAJO, asi que el mismo
+   * `white/60` pasa o falla segun donde se monte.
+   *
+   * Este color es solido: 6.29:1 sobre el azul y 4.90:1 sobre el tinte de
+   * `white/10`. Cumple en los dos sin depender del contexto.
+   */
+  --color-sobre-azul: #cddceb;
 }
 
 /* Objetivo tactil minimo. Se usa en todo boton del flujo de conteo. */
@@ -183,89 +197,123 @@ body {
 }
 
 /*
- * MODO ENFOQUE — una tarea por pantalla cuando la pantalla es corta.
+ * UNA TAREA POR PANTALLA.
  *
- * La pantalla de conteo son dos paneles apilados: la lista de articulos arriba
- * (flexible) y la zona de captura abajo (contenido fijo). En una tablet de
- * 1024 px los dos caben de sobra. En un telefono depende de QUE panel este
- * abierto, porque no miden lo mismo — medido, no estimado:
+ * La pantalla de conteo hacia dos cosas a la vez: elegir articulo (lista,
+ * buscador, voz, escaner) y capturar cantidad (teclado, merma, guardar). Con
+ * las dos montadas se contaron 38 controles visibles a la vez en un telefono
+ * de 390 px, y 45 con el dialogo de anomalias abierto.
  *
- *   lista sola ....  249 px   siempre cabe
- *   conteo ........  469 px   deja 295 px de lista en un telefono de 844
- *                             (3 articulos, util); nada por debajo de ~790
- *   merma .........  739 px   no deja lista utilizable en NINGUN telefono
+ * Ahora son dos modos que NO conviven:
  *
- * De ahi que sean dos umbrales y no uno. Ocultar la lista siempre que hubiera
- * un articulo activo dejaba 225 px de vacio contando en un telefono normal,
- * donde la lista cabia perfectamente. Y dejarla siempre la reducia a 46 px en
- * merma: un sobrante que no informa de nada y le roba altura al teclado.
+ *   ELEGIR    la lista ocupa la pantalla; abajo voz, escaner y dictado continuo
+ *   CAPTURAR  el articulo elegido, el numero grande, el teclado y guardar
  *
- * Cuando se oculta no se pierde nada: el nombre, el numero de catalogo y la
- * unidad del articulo activo ya estan en la zona de captura, y "Cancelar"
- * devuelve a la lista.
+ * Antes esto dependia de un umbral de ALTO de pantalla: se ocultaba la lista
+ * solo si no cabia. Eso resolvia el sintoma — en telefono la lista quedaba en
+ * 46 px y mostraba cero articulos — pero dejaba la pantalla partida en tablet,
+ * y sobre todo hacia que el comportamiento dependiera del dispositivo. La
+ * separacion es una decision de producto, no una consecuencia del tamaño.
  *
- * Los umbrales son de ALTO, no de ancho: el problema es vertical. Una tablet en
- * vertical conserva los dos paneles; un telefono en horizontal entra en modo
- * enfoque, que es justo lo que necesita.
+ * No se pierde nada al ocultar la lista: el nombre, el numero de catalogo y la
+ * unidad del articulo activo estan en la zona de captura, y "Cancelar" vuelve.
  */
-
-/* Merma (739 px): no cabe con la lista en ningun telefono. */
-@media (max-height: 899px) {
-  main[data-panel='merma'] .lista-articulos {
-    display: none;
-  }
+main[data-panel='conteo'] .lista-articulos,
+main[data-panel='merma'] .lista-articulos {
+  display: none;
 }
 
-/* Conteo (469 px): cabe con 3 articulos en un telefono de 844, no por debajo
-   de 790. */
-@media (max-height: 789px) {
-  main[data-panel='conteo'] .lista-articulos {
-    display: none;
-  }
+/*
+ * Con la lista oculta, la captura se queda con la pantalla: pegada ABAJO —
+ * donde llega el pulgar, que es el principio de esta hoja — y capaz de
+ * encogerse y desplazarse por dentro cuando no cabe (el panel de merma mide
+ * 755 px, mas que un iPhone SE entero). Sin esto, `overflow-hidden` del
+ * contenedor recorta el boton de guardar y deja el flujo sin salida.
+ */
+main[data-panel='conteo'] .zona-captura,
+main[data-panel='merma'] .zona-captura {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-@media (max-height: 899px) {
-  /*
-   * Con la lista oculta la captura puede seguir siendo mas alta que la pantalla
-   * (739 px de merma en un telefono de 667). Se le permite encoger y
-   * desplazarse por dentro: sin esto, el `overflow-hidden` del contenedor
-   * recorta el boton de guardar y deja el flujo sin salida.
-   */
-  main[data-panel='merma'] .zona-captura,
-  main[data-panel='conteo'] .zona-captura {
-    min-height: 0;
-    flex-shrink: 1;
-    overflow-y: auto;
-  }
-
-  /*
-   * Y pegada ABAJO, no arriba.
-   *
-   * Con la lista oculta ya no hay nadie que absorba el espacio libre, asi que
-   * la captura subia al borde superior y dejaba el vacio DEBAJO — el teclado
-   * terminaba en la zona mas lejana para el pulgar, justo lo contrario del
-   * principio de esta hoja: todo lo interactivo vive en la mitad inferior.
-   * `margin-top: auto` se come el hueco por arriba y devuelve el teclado al
-   * alcance de la mano.
-   *
-   * Solo aplica cuando la lista esta oculta: con la lista visible es ella la
-   * que crece (`flex-1`) y no queda hueco que repartir.
-   */
-  main[data-panel='merma'] .zona-captura {
-    margin-top: auto;
-  }
+/*
+ * El visor de la cantidad se come el espacio libre.
+ *
+ * Con la lista oculta sobraban ~660 px sobre el teclado. Anclar la captura
+ * abajo y dejar el hueco vacio arriba desperdiciaba media pantalla; en su lugar
+ * el articulo y la cifra crecen para llenarlo, como el visor de una
+ * calculadora. La cifra pasa de 36 px a 72: es el dato que hay que poder
+ * comprobar de un vistazo antes de guardar.
+ *
+ * `min-height: 0` para que pueda encogerse cuando el panel de merma no cabe.
+ */
+/*
+ * El visor es una TARJETA que ocupa el espacio libre, no una linea suelta.
+ *
+ * Al separar elegir de capturar sobraban ~450 px sobre el teclado. Dejarlos en
+ * blanco leia como pantalla a medio hacer; anclar la cifra abajo la pegaba al
+ * teclado pero el hueco seguia ahi. Convertida en tarjeta elevada, ese espacio
+ * pasa a ser el visor: el articulo arriba y la cantidad centrada y enorme, que
+ * es el dato a comprobar antes de guardar.
+ */
+.pantalla-cantidad {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  border-radius: 1rem;
+  background: var(--superficie);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgb(10 37 64 / 0.06);
 }
 
-@media (max-height: 789px) {
-  main[data-panel='conteo'] .zona-captura {
-    margin-top: auto;
-  }
+.pantalla-cantidad .cifra {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+/* Solo cuando hay sitio de sobra: en merma el panel ya llena la pantalla. */
+main[data-panel='conteo'] .pantalla-cantidad .cifra {
+  font-size: clamp(2.5rem, 22vw, 6rem);
+}
+
+/* En merma la tarjeta no crece: el panel de motivos y foto necesita el alto. */
+main[data-panel='merma'] .pantalla-cantidad {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+main[data-panel='merma'] .pantalla-cantidad .cifra {
+  flex: 0 0 auto;
 }
 
 .tecla {
-  @apply flex items-center justify-center rounded-xl border border-borde bg-superficie-alta text-2xl font-semibold text-texto active:bg-acento active:text-white;
+  @apply flex items-center justify-center rounded-xl border border-borde bg-superficie text-2xl font-semibold text-texto shadow-sm active:bg-acento active:text-white active:shadow-none;
   min-height: 64px;
   user-select: none;
+}
+
+/*
+ * Teclas de ACCION (C, borrar, coma, +½) frente a los digitos.
+ *
+ * Eran doce bloques identicos: el 7 y el borrar tenian el mismo peso. En una
+ * tarea de cientos de pulsaciones eso hace fallar. Las acciones van sin
+ * elevacion, sobre la superficie hundida y con texto atenuado: se distinguen
+ * por material antes de leerlas.
+ */
+.tecla-accion {
+  @apply border-transparent bg-superficie-alta text-xl text-tenue shadow-none;
 }
 
 .tarjeta {
@@ -285,6 +333,50 @@ body {
  */
 .sobre-azul .tecla {
   @apply border-white/25 bg-white/10 text-white active:bg-white active:text-acento;
+}
+
+/*
+ * PANTALLA CORTA (iPhone SE y parecidos, 667 px de alto).
+ *
+ * En el paso del PIN el contenido pedia 586 px dentro de un panel de 460:
+ * sobraban 126 px y "Regresar" caia por debajo del pliegue, al 121% de la
+ * pantalla. Justo el boton que existe para salir de un error no puede exigir
+ * que se descubra que hay que desplazarse.
+ *
+ * Se recuperan de tres sitios, ninguno esencial, y solo por debajo de 700 px:
+ *
+ *   cabecera mas compacta y logo a 40 px .... ~45 px
+ *   se oculta la inicial del paso PIN ....... ~68 px
+ *   teclas de 64 a 56 px (sigue sobre 44) ... ~32 px
+ *
+ * La inicial es refuerzo: el nombre grande sigue diciendo quien eres, que es
+ * lo que hay que poder comprobar antes de teclear.
+ */
+@media (max-height: 700px) {
+  .marca-entrada {
+    padding-top: 1.25rem;
+    padding-bottom: 1rem;
+  }
+
+  .marca-entrada img {
+    height: 2.5rem;
+  }
+
+  .avatar-pin {
+    display: none;
+  }
+
+  .sobre-azul .tecla {
+    min-height: 56px;
+  }
+
+  /* Los margenes del bloque de identidad y de los puntos. A 640 px (Android
+     antiguo, todavia comun) los tres recortes de arriba dejaban el boton 21 px
+     por debajo del borde; con esto entra con holgura. */
+  .puntos-pin {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
 }
 
 /* El microfono es el elemento mas grande de la pantalla a proposito. */
