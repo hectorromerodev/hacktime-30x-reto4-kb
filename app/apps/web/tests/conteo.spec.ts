@@ -68,29 +68,23 @@ test.describe('Conteo', () => {
      *
      * AGUA BOTELLA no sirve: tiene 423, y 30 seria un orden por debajo.
      */
-    await page.locator('.tecla').filter({ hasText: '3' }).click();
-    await page.locator('.tecla').filter({ hasText: '0' }).click();
+    await page.getByTestId('tecla-3').click();
+    await page.getByTestId('tecla-0').click();
 
     await page.getByRole('button', { name: 'Guardar' }).click();
 
     /*
-     * DEUDA CONOCIDA: esta asercion es debil y hay que reforzarla.
+     * Asercion fuerte: el guardado ocurrio de verdad.
      *
-     * Comprueba que la zona de captura sigue en pantalla, no que la captura se
-     * haya guardado — "Cancelar" esta visible siempre que el panel este abierto,
-     * dialogo de anomalia incluido. O sea que pasa aunque el guardado quede
-     * bloqueado.
-     *
-     * Lo correcto seria afirmar que el panel SE CIERRA (`Guardar` oculto), que
-     * es lo que ocurre al guardar de verdad. En un navegador normal ocurre — se
-     * verifico a mano contra el stack local: tras guardar el panel muestra
-     * "✓ AGUA 280 ML · 30 un". Dentro de este arnes, en cambio, `Guardar` sigue
-     * visible y no aparece ningun dialogo, asi que algo del camino de guardado
-     * se comporta distinto bajo la intercepcion de `/api/**` de `helpers.ts`.
-     * Queda por diagnosticar: mientras no se entienda, poner aqui la asercion
-     * fuerte solo añadiria un test rojo permanente que nadie sabria leer.
+     * El E2E ahora corre contra el backend real (Caddy, sin interceptar
+     * `/api/**`), asi que guardar SI se completa: el articulo se deselecciona,
+     * el boton `Guardar` desaparece y la zona de captura muestra la
+     * confirmacion "✓ AGUA 280 ML · 30 un". Se comprueban las dos cosas —el
+     * panel cerrado y el dato guardado— en vez del texto ambiguo de antes, que
+     * pasaba con el panel simplemente abierto.
      */
-    await expect(page.getByText(/guardado|siguiente|Cancelar/)).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('button', { name: 'Guardar' })).toBeHidden({ timeout: 5_000 });
+    await expect(page.getByText(/AGUA 280 ML · 30/)).toBeVisible();
   });
 
   test('anomalía: cantidad fuera de escala dispara diálogo de verificación', async ({ page }) => {
@@ -102,9 +96,9 @@ test.describe('Conteo', () => {
     await page.getByText('ACEITE').first().click();
 
     // Teclear 900 (fuera de escala — el stock real ronda ~30)
-    await page.locator('.tecla').filter({ hasText: '9' }).click();
-    await page.locator('.tecla').filter({ hasText: '0' }).click();
-    await page.locator('.tecla').filter({ hasText: '0' }).click();
+    await page.getByTestId('tecla-9').click();
+    await page.getByTestId('tecla-0').click();
+    await page.getByTestId('tecla-0').click();
 
     // Intentar guardar
     await page.getByText('Guardar').click();
@@ -145,7 +139,7 @@ test.describe('Conteo', () => {
     const articulo = page.getByText('ACEITE').first();
     if (await articulo.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await articulo.click();
-      await page.locator('.tecla').filter({ hasText: '1' }).click();
+      await page.getByTestId('tecla-1').click();
       await page.getByText('Guardar').click();
     }
 

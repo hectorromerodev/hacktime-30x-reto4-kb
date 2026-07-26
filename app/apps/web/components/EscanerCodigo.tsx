@@ -354,7 +354,7 @@ export function EscanerCodigo({
         {/* Avance de la sesión de escaneo, sin tener que salir a mirar. */}
         {capturados.length > 0 && (
           <div className="absolute left-4 top-4 max-w-[60%] rounded-xl bg-black/70 px-3 py-2 backdrop-blur">
-            <p className="text-xs font-medium text-acento">
+            <p className="text-xs font-medium text-white">
               {capturados.length} capturado{capturados.length === 1 ? '' : 's'}
             </p>
             <p className="truncate text-xs text-white/80">

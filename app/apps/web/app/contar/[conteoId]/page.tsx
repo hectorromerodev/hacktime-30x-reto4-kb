@@ -1324,7 +1324,17 @@ function Tecla({
     // `tenue` ya no es solo un color de texto: cambia el MATERIAL de la tecla
     // (sin elevacion, superficie hundida) para que accion y digito no pesen
     // igual. Ver `.tecla-accion` en globals.css.
-    <button onClick={onClick} className={`tecla ${tenue ? 'tecla-accion' : ''}`}>
+    <button
+      onClick={onClick}
+      className={`tecla ${tenue ? 'tecla-accion' : ''}`}
+      // Identidad estable para el E2E: `tecla-7`, `tecla-0`… Se deriva del
+      // dígito, no de la clase CSS (que es estilo y cambia con el diseño).
+      data-testid={
+        typeof children === 'string' || typeof children === 'number'
+          ? `tecla-${children}`
+          : undefined
+      }
+    >
       {children}
     </button>
   );

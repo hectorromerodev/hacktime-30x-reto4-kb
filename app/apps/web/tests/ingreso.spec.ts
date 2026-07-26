@@ -41,7 +41,7 @@ test.describe('Ingreso', () => {
 
     // PIN equivocado
     for (const d of ['2', '2', '2', '2']) {
-      await page.locator('.tecla').filter({ hasText: d }).click();
+      await page.getByTestId(`tecla-${d}`).click();
     }
 
     await expect(page.getByText('PIN incorrecto')).toBeVisible();

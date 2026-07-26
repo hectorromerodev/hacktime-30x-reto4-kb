@@ -191,7 +191,12 @@ export default function Inicio() {
 
         <div className="mt-auto grid grid-cols-3 gap-2">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-            <button key={d} className="tecla" onClick={() => enviarPin(pin + d)}>
+            <button
+              key={d}
+              className="tecla"
+              data-testid={`tecla-${d}`}
+              onClick={() => enviarPin(pin + d)}
+            >
               {d}
             </button>
           ))}
@@ -203,7 +208,11 @@ export default function Inicio() {
             como accion secundaria propia.
           */}
           <span aria-hidden />
-          <button className="tecla" onClick={() => enviarPin(pin + '0')}>
+          <button
+            className="tecla"
+            data-testid="tecla-0"
+            onClick={() => enviarPin(pin + '0')}
+          >
             0
           </button>
           <button
@@ -594,10 +603,11 @@ function Fila({
 }
 
 /**
- * Aviso de error DENTRO del panel azul.
+ * Aviso de error.
  *
- * No puede ser texto rojo: #C0392B sobre #004B8D da 1.61:1, ilegible. Se
- * invierte a relleno rojo con texto blanco (5.44:1, AA).
+ * Relleno rojo con texto blanco (5.44:1, AA): se lee igual sobre el hueso de
+ * las pantallas de entrada que sobre cualquier otra superficie. No se usa texto
+ * rojo suelto porque #C0392B cae por debajo del mínimo según el fondo.
  */
 function Aviso({ children }: { children: React.ReactNode }) {
   return (
