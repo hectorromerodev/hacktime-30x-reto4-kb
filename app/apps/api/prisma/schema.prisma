@@ -58,6 +58,7 @@ model Usuario {
 
   capturas        Captura[]
   conteosCreados  Conteo[]             @relation("creador")
+  conteosCerrados Conteo[]             @relation("cerrador")
   participaciones ConteoParticipante[]
 }
 
@@ -123,18 +124,31 @@ model Conteo {
   bodegaId    String
   /// '2026-07'
   periodo     String
+  /// Cuantas veces se ha contado esta bodega en el periodo.
+  ///
+  /// Existe para poder cerrar un conteo y empezar otro sin esperar al mes
+  /// siguiente: un recuento completo tras encontrar algo raro, o una segunda
+  /// vuelta despues de resolver los conflictos. Antes la llave unica era
+  /// (bodega, periodo) y lo impedia.
+  secuencia   Int          @default(1)
   fechaCorte  DateTime
   estado      EstadoConteo @default(ABIERTO)
   creadoPorId String
   creadoEn    DateTime     @default(now())
   cerradoEn   DateTime?
+  /// Quien firmo el cierre. Es el dato que la auditoria necesita.
+  cerradoPorId String?
+  /// Notas del lider al cerrar: por que se cierra asi, que quedo pendiente.
+  notaCierre   String?
 
   bodega       Bodega               @relation(fields: [bodegaId], references: [id])
   creadoPor    Usuario              @relation("creador", fields: [creadoPorId], references: [id])
+  cerradoPor   Usuario?             @relation("cerrador", fields: [cerradoPorId], references: [id])
   capturas     Captura[]
   participante ConteoParticipante[]
 
-  @@unique([bodegaId, periodo])
+  @@unique([bodegaId, periodo, secuencia])
+  @@index([bodegaId, estado])
 }
 
 model ConteoParticipante {

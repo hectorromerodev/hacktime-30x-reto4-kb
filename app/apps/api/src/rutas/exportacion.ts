@@ -23,7 +23,7 @@
 import type { FastifyInstance } from 'fastify';
 import ExcelJS from 'exceljs';
 import { prisma, aNumero } from '../db.ts';
-import { requiereSesion } from '../auth.ts';
+import { requiereLider } from '../auth.ts';
 
 interface FilaReporte {
   articuloId: string;
@@ -195,7 +195,17 @@ async function armarReporte(conteoId: string) {
 }
 
 export async function rutasExportacion(app: FastifyInstance) {
-  app.addHook('preHandler', requiereSesion);
+  /**
+   * TODO lo de este archivo es solo del lider de costos.
+   *
+   * No es una formalidad: estas rutas devuelven `sd`, la cantidad que el
+   * sistema espera. Estaban protegidas unicamente con `requiereSesion`, asi
+   * que cualquier contador podia pedir /reporte desde el navegador y ver los
+   * valores esperados A MITAD del conteo — justo lo que el conteo ciego
+   * existe para impedir. La UI nunca lo hacia, pero "la UI no lo hace" no es
+   * un control de acceso.
+   */
+  app.addHook('preHandler', requiereLider);
 
   /** Resumen en pantalla para el lider, antes de descargar. */
   app.get<{ Params: { id: string } }>('/conteos/:id/reporte', async (req, reply) => {
@@ -216,7 +226,38 @@ export async function rutasExportacion(app: FastifyInstance) {
     return {
       bodega: datos.conteo.bodega.nombre,
       periodo: datos.conteo.periodo,
+      secuencia: datos.conteo.secuencia,
       estado: datos.conteo.estado,
+      cerradoEn: datos.conteo.cerradoEn,
+      notaCierre: datos.conteo.notaCierre,
+      fechaCorte: datos.conteo.fechaCorte,
+      // Todas las filas del catalogo, que es lo que va a la hoja CONTEO.
+      // Permite ver en pantalla exactamente lo que se va a exportar.
+      conteo: filas.map((f) => ({
+        nrArticulo: f.nrArticulo,
+        articulo: f.nombre.trim(),
+        familia: f.familia,
+        unidad: f.unidad,
+        contado: f.contado,
+        sistema: f.sistema,
+        merma: f.merma,
+        enConflicto: f.enConflicto,
+        metodos: f.metodos,
+      })),
+      trazabilidad: datos.capturas.map((c) => ({
+        capturadoEn: c.capturadoEn,
+        usuario: c.usuario.nombre,
+        articulo: filas.find((f) => f.articuloId === c.articuloId)?.nombre.trim() ?? '',
+        cantidad: aNumero(c.cantidad),
+        unidad: c.unidad,
+        unidadDicha: c.unidadDicha,
+        metodo: c.metodo,
+        textoCrudo: c.textoCrudo,
+        scoreMatch: c.scoreMatch,
+        anomalias: c.anomalias,
+        motivoConfirmacion: c.motivoConfirmacion,
+        enConflicto: c.enConflicto,
+      })),
       resumen: {
         articulosCatalogo: filas.length,
         contados: contadas.length,

@@ -17,7 +17,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { prisma, aNumero } from '../db.ts';
-import { requiereSesion } from '../auth.ts';
+import { requiereSesion, requiereLider } from '../auth.ts';
 
 export async function rutasCatalogo(app: FastifyInstance) {
   app.addHook('preHandler', requiereSesion);
@@ -57,21 +57,32 @@ export async function rutasCatalogo(app: FastifyInstance) {
       const bodega = await prisma.bodega.findUnique({ where: { id: bodegaId } });
       if (!bodega) return reply.code(404).send({ error: 'Bodega no encontrada.' });
 
-      const existente = await prisma.conteo.findUnique({
-        where: { bodegaId_periodo: { bodegaId, periodo } },
+      // Se retoma el conteo ABIERTO de esa bodega y periodo. Si el ultimo ya
+      // se cerro, se abre uno nuevo con la siguiente secuencia: asi se puede
+      // recontar una bodega sin esperar al mes siguiente.
+      const abierto = await prisma.conteo.findFirst({
+        where: { bodegaId, periodo, estado: 'ABIERTO' },
+        orderBy: { secuencia: 'desc' },
       });
 
-      const conteo =
-        existente ??
-        (await prisma.conteo.create({
+      let conteo = abierto;
+      if (!conteo) {
+        const ultimo = await prisma.conteo.findFirst({
+          where: { bodegaId, periodo },
+          orderBy: { secuencia: 'desc' },
+          select: { secuencia: true },
+        });
+        conteo = await prisma.conteo.create({
           data: {
             bodegaId,
             periodo,
+            secuencia: (ultimo?.secuencia ?? 0) + 1,
             // El inventario queda fechado al ultimo dia del mes, como el proceso real.
             fechaCorte: ultimoDiaDelMes(periodo),
             creadoPorId: req.sesion!.usuarioId,
           },
-        }));
+        });
+      }
 
       // Quien abre o retoma un conteo queda registrado como participante:
       // es lo que permite atribuir capturas y detectar conteos simultaneos.
@@ -87,7 +98,94 @@ export async function rutasCatalogo(app: FastifyInstance) {
         update: {},
       });
 
-      return { conteo: { id: conteo.id, bodegaId, periodo, estado: conteo.estado } };
+      return {
+        conteo: {
+          id: conteo.id,
+          bodegaId,
+          periodo,
+          secuencia: conteo.secuencia,
+          estado: conteo.estado,
+        },
+      };
+    },
+  );
+
+  /**
+   * Cierra el conteo. A partir de aqui no entran mas capturas y la bodega
+   * queda libre para abrir otro.
+   *
+   * Solo el lider de costos: cerrar es un acto de auditoria, no de captura.
+   */
+  app.post<{ Params: { id: string }; Body: { nota?: string } }>(
+    '/conteos/:id/cerrar',
+    { preHandler: requiereLider },
+    async (req, reply) => {
+      const conteo = await prisma.conteo.findUnique({ where: { id: req.params.id } });
+      if (!conteo) return reply.code(404).send({ error: 'Conteo no encontrado.' });
+      if (conteo.estado !== 'ABIERTO') {
+        return reply.code(409).send({ error: 'Este conteo ya estaba cerrado.' });
+      }
+
+      // Las capturas sin sincronizar se pierden si se cierra antes de tiempo,
+      // asi que se avisa de lo que queda sin contar; no se bloquea, porque
+      // dejar articulos sin contar es una decision legitima del lider.
+      const [total, contados] = await Promise.all([
+        prisma.stock.count({ where: { bodegaId: conteo.bodegaId } }),
+        prisma.captura.findMany({
+          where: { conteoId: conteo.id, estado: 'ACTIVA', tipo: 'CONTEO' },
+          select: { articuloId: true },
+          distinct: ['articuloId'],
+        }),
+      ]);
+
+      const cerrado = await prisma.conteo.update({
+        where: { id: conteo.id },
+        data: {
+          estado: 'CERRADO',
+          cerradoEn: new Date(),
+          cerradoPorId: req.sesion!.usuarioId,
+          notaCierre: req.body?.nota?.slice(0, 500) ?? null,
+        },
+      });
+
+      return {
+        conteo: {
+          id: cerrado.id,
+          estado: cerrado.estado,
+          cerradoEn: cerrado.cerradoEn,
+          secuencia: cerrado.secuencia,
+        },
+        sinContar: total - contados.length,
+      };
+    },
+  );
+
+  /** Reabre un conteo cerrado por error. Queda registrado que se reabrio. */
+  app.post<{ Params: { id: string } }>(
+    '/conteos/:id/reabrir',
+    { preHandler: requiereLider },
+    async (req, reply) => {
+      const conteo = await prisma.conteo.findUnique({ where: { id: req.params.id } });
+      if (!conteo) return reply.code(404).send({ error: 'Conteo no encontrado.' });
+      if (conteo.estado === 'ABIERTO') {
+        return reply.code(409).send({ error: 'Ese conteo ya está abierto.' });
+      }
+      // Si ya se abrio otro conteo despues, reabrir este dejaria dos abiertos
+      // en la misma bodega y las capturas irian a parar a cualquiera.
+      const otroAbierto = await prisma.conteo.findFirst({
+        where: { bodegaId: conteo.bodegaId, periodo: conteo.periodo, estado: 'ABIERTO' },
+      });
+      if (otroAbierto) {
+        return reply.code(409).send({
+          error: 'Ya hay otro conteo abierto en esta bodega. Ciérralo primero.',
+        });
+      }
+
+      await prisma.conteo.update({
+        where: { id: conteo.id },
+        data: { estado: 'ABIERTO', cerradoEn: null, cerradoPorId: null },
+      });
+      return { ok: true };
     },
   );
 
