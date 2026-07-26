@@ -49,6 +49,7 @@ import {
   type EstadoConexion,
 } from '@/lib/sync';
 import { escuchar, vozDisponible, pedirPermisoMicrofono, type ResultadoVoz } from '@/lib/voz';
+import { siguienteAccion, LIMITE_FALLOS } from '@/lib/dictadoSeguido';
 import { EscanerCodigo } from '@/components/EscanerCodigo';
 import { Hoja } from '@/components/ui/Hoja';
 
@@ -143,6 +144,21 @@ export default function Contar() {
   const [parcial, setParcial] = useState('');
 
   /**
+   * `escuchando` en forma de ref, y SIEMPRE se cambian los dos juntos.
+   *
+   * El estado solo pinta el indicador; las decisiones de la cadena de dictado
+   * ocurren dentro de callbacks del reconocedor, que ven el valor del render en
+   * que se registraron. El reinicio del dictado seguido dependia de que ese
+   * valor estuviera desactualizado para pasar su propia guarda: funcionaba, pero
+   * por accidente. Con la ref la guarda lee el estado real del microfono.
+   */
+  const escuchandoRef = useRef(false);
+  function marcarEscuchando(valor: boolean) {
+    escuchandoRef.current = valor;
+    setEscuchando(valor);
+  }
+
+  /**
    * Dictado continuo: el micrófono se vuelve a abrir solo tras cada frase, y
    * lo que se entiende sin ambigüedad se guarda sin pedir confirmación.
    *
@@ -165,6 +181,16 @@ export default function Contar() {
   modoContinuo.current = continuo;
   /** Lo pone el usuario al soltar/cancelar: corta la cadena de reinicios. */
   const detenidoAMano = useRef(false);
+  /**
+   * ¿Hay una cadena de dictado seguido en curso?
+   *
+   * Distinta de `continuo`, que es solo la preferencia. La cadena empieza
+   * cuando el contador toca el microfono y termina cuando la detiene, cuando
+   * apaga el interruptor o tras varios fallos. Sin esto, la reanudacion
+   * automatica abriria el microfono sola al entrar a la pantalla — con la
+   * preferencia recordada de la sesion anterior y sin que nadie lo pidiera.
+   */
+  const cadenaActiva = useRef(false);
   /** Errores seguidos; con varios se apaga solo para no entrar en bucle. */
   const fallosSeguidos = useRef(0);
   /** Cuantos artículos lleva guardados esta cadena de dictado seguido. */
@@ -194,6 +220,29 @@ export default function Contar() {
   usuarioRef.current = usuario;
   capturasRef.current = capturas;
   anomaliasRef.current = anomalias;
+
+  /**
+   * ¿La pantalla esta esperando que alguien decida algo?
+   *
+   * Es LA condicion del dictado seguido. El microfono solo puede seguir abierto
+   * mientras la pantalla este lista para oir el siguiente articulo; en cuanto
+   * aparece algo que exige un toque, seguir escuchando es dañino:
+   *
+   *  · Con varios candidatos, la frase siguiente reemplaza las tarjetas que la
+   *    persona esta leyendo. Elegia entre opciones que ya no existian.
+   *  · Con un articulo activo, la fila del microfono ni siquiera se dibuja: el
+   *    reconocedor seguia corriendo sin indicador y sin forma de apagarlo, y el
+   *    siguiente resultado borraba la cantidad a medio teclear.
+   *  · Con la camara o el dialogo de anomalia abiertos, igual.
+   *
+   * Asi que la cadena se PAUSA en esos estados —microfono cerrado, indicador
+   * apagado— y se reanuda sola al resolverlos. Pausar y reanudar, no morir: si
+   * muriera, cada articulo ambiguo obligaria a volver a tocar el microfono.
+   */
+  const requiereAtencion =
+    activo !== null || candidatos.length > 0 || anomalias !== null || escaneando;
+  const requiereAtencionRef = useRef(false);
+  requiereAtencionRef.current = requiereAtencion;
 
   const indice = useMemo(
     () => (articulos.length ? construirIndice(articulos) : null),
@@ -281,6 +330,21 @@ export default function Contar() {
       setAvisoVoz('Este navegador no reconoce voz. Cuenta con el teclado o la búsqueda.');
     }
   }, []);
+
+  /*
+   * Al salir de la pantalla se cierra el microfono. Sin esto, salir con el
+   * dictado abierto dejaba el reconocedor vivo sobre una pagina que ya no
+   * existe — el punto rojo del navegador encendido y nada que lo apagara.
+   */
+  useEffect(
+    () => () => {
+      cadenaActiva.current = false;
+      detenidoAMano.current = true;
+      detener.current?.();
+      detener.current = null;
+    },
+    [],
+  );
 
   useEffect(() => {
     const parar = arrancarSincronizacion(conteoId);
@@ -392,7 +456,7 @@ export default function Contar() {
 
   const alResultadoVoz = useCallback(
     (r: ResultadoVoz) => {
-      setEscuchando(false);
+      marcarEscuchando(false);
       setParcial('');
       setTextoCrudo(r.transcripcion);
       setMetodo('VOZ');
@@ -417,10 +481,10 @@ export default function Contar() {
           if (guardado) {
             setDictados((n) => n + 1);
             setAvisoVoz(null);
-          } else {
-            // Saltó una anomalía: se corta la cadena y se resuelve a mano.
-            detenidoAMano.current = true;
           }
+          // Si saltó una anomalía no hace falta hacer nada aquí: el diálogo
+          // abierto ya cuenta como "requiere atención", así que la cadena
+          // queda en pausa y se reanuda sola al resolverlo.
         });
         return;
       }
@@ -458,8 +522,16 @@ export default function Contar() {
    * del usuario, y meter una promesa en medio lo invalida. Por eso el permiso
    * de microfono se diagnostica DESPUES de fallar, no antes de empezar.
    */
-  function iniciarEscucha() {
-    if (!indice || escuchando) return;
+  /**
+   * @param forzado lo pone el toque en el microfono, que manda sobre la guarda:
+   * con las tarjetas de candidatos en pantalla, tocar el microfono significa
+   * "ninguna de esas, la digo otra vez" — y con la guarda ciega el boton no
+   * hacia nada.
+   */
+  function iniciarEscucha(forzado = false) {
+    if (!indice || escuchandoRef.current) return;
+    // Nunca se abre el microfono solo sobre una pantalla que espera un toque.
+    if (!forzado && requiereAtencionRef.current) return;
     // La voz depende de los servidores del reconocedor, no de nuestra API:
     // con el servidor caido pero con internet, sigue funcionando. Por eso
     // aqui se mira navigator.onLine y no el estado de sincronizacion.
@@ -468,7 +540,7 @@ export default function Contar() {
       return;
     }
 
-    setEscuchando(true);
+    marcarEscuchando(true);
     setAvisoVoz(null);
 
     detener.current = escuchar(
@@ -476,12 +548,21 @@ export default function Contar() {
       alResultadoVoz,
       setParcial,
       (m) => {
-        setEscuchando(false);
+        marcarEscuchando(false);
         setParcial('');
         setAvisoVoz(m);
         // "No se escuchó nada" es normal entre frases del dictado continuo;
         // el resto de errores sí cuentan para apagarlo.
         if (!m.startsWith('No se escuchó')) fallosSeguidos.current += 1;
+        // Tres fallos seguidos y la cadena se termina de verdad: se apaga el
+        // interruptor. Dejarlo encendido sobre una cadena muerta seria el peor
+        // de los dos mundos — dice que esta dictando y no lo esta.
+        if (fallosSeguidos.current >= LIMITE_FALLOS && cadenaActiva.current) {
+          cadenaActiva.current = false;
+          setContinuo(false);
+          localStorage.setItem('dictadoContinuo', '0');
+          setAvisoVoz(`${m} Se apagó el dictado seguido.`);
+        }
         // Si el navegador dijo que no hay permiso, se averigua el motivo real
         // para poder decirle al contador que hacer.
         if (m.includes('bloqueado') && !permisoOk.current) {
@@ -492,20 +573,14 @@ export default function Contar() {
         }
       },
       () => {
-        setEscuchando(false);
-        // Dictado continuo: se vuelve a abrir el micrófono solo. Se corta si
-        // el contador lo detuvo, si hay un diálogo abierto, o tras varios
-        // fallos seguidos — un reinicio ciego en bucle vaciaría la batería.
-        if (
-          modoContinuo.current &&
-          !detenidoAMano.current &&
-          fallosSeguidos.current < 3 &&
-          !anomaliasRef.current
-        ) {
-          setTimeout(() => {
-            if (modoContinuo.current && !detenidoAMano.current) iniciarEscucha();
-          }, 350);
-        }
+        // Aqui NO se reabre el microfono.
+        //
+        // Antes este callback tenia su propio `setTimeout` de reinicio, ademas
+        // del efecto que reanuda tras una pausa: dos temporizadores decidiendo
+        // lo mismo con condiciones que habia que mantener iguales a mano. Basta
+        // con apagar el indicador — eso cambia `escuchando`, y el efecto de
+        // reanudacion decide si corresponde volver a abrir.
+        marcarEscuchando(false);
       },
     );
   }
@@ -513,7 +588,8 @@ export default function Contar() {
   function terminarEscucha() {
     detener.current?.();
     detener.current = null;
-    setEscuchando(false);
+    marcarEscuchando(false);
+    setParcial('');
   }
 
   /**
@@ -528,16 +604,24 @@ export default function Contar() {
 
   function alPresionarMicrofono() {
     if (escuchando) {
-      // Segundo toque durante la escucha: cierra.
+      // Segundo toque durante la escucha: cierra, y cierra la cadena entera.
+      // Tocar el microfono para callarlo y que se reabra solo seria absurdo.
       detenidoAMano.current = true;
+      cadenaActiva.current = false;
       terminarEscucha();
       inicioPulsacion.current = 0;
       return;
     }
     detenidoAMano.current = false;
     fallosSeguidos.current = 0;
+    cadenaActiva.current = modoContinuo.current;
     inicioPulsacion.current = performance.now();
-    iniciarEscucha();
+    // Volver a dictar descarta las tarjetas anteriores: si se dejaran, al
+    // terminar la frase habria dos juegos de candidatos disputandose la
+    // pantalla, y el viejo ya no corresponde a lo que se acaba de decir.
+    setCandidatos([]);
+    requiereAtencionRef.current = false;
+    iniciarEscucha(true);
   }
 
   function alSoltarMicrofono() {
@@ -558,6 +642,7 @@ export default function Contar() {
     localStorage.setItem('dictadoContinuo', valor ? '1' : '0');
     if (!valor) {
       detenidoAMano.current = true;
+      cadenaActiva.current = false;
       terminarEscucha();
       return;
     }
@@ -566,7 +651,63 @@ export default function Contar() {
     fallosSeguidos.current = 0;
     detenidoAMano.current = false;
     setDictados(0);
+    // Encender el interruptor NO abre el microfono: abrirlo aqui dejaria a
+    // alguien dictando sin haberlo pedido. Pero si YA esta abierto, encenderlo
+    // adopta esa escucha como cadena — es lo que significa el gesto de
+    // activarlo a mitad de un dictado.
+    cadenaActiva.current = escuchandoRef.current;
   }
+
+  /**
+   * Pausa y reanudacion de la cadena de dictado seguido.
+   *
+   * Dos direcciones, y las dos importan:
+   *
+   *  · Aparece algo que exige un toque mientras el microfono esta abierto —se
+   *    toca un articulo de la lista, se abre la camara— y hay que CERRARLO ya.
+   *    Esperar al `onend` no sirve: la fila del microfono se desmonta al
+   *    activar un articulo, asi que el reconocedor seguiria corriendo sin
+   *    indicador y sin boton para apagarlo.
+   *  · Se resuelve y hay que REABRIRLO, porque la cadena solo estaba en pausa.
+   *
+   * `escuchando` esta en las dependencias a proposito: tras reabrir, el efecto
+   * corre otra vez y `siguienteAccion` devuelve NADA sin repetir.
+   *
+   * La decision vive en `lib/dictadoSeguido.ts`, como funcion pura y probada:
+   * estaba duplicada aqui y en el `onend` del reconocedor, y fue justo al
+   * separarse las dos copias cuando el microfono empezo a quedarse abierto
+   * detras de las tarjetas de candidatos.
+   */
+  useEffect(() => {
+    const accion = siguienteAccion({
+      continuo,
+      cadenaActiva: cadenaActiva.current,
+      requiereAtencion,
+      escuchando: escuchandoRef.current,
+      detenidoAMano: detenidoAMano.current,
+      fallosSeguidos: fallosSeguidos.current,
+    });
+    if (accion === 'CERRAR') {
+      terminarEscucha();
+      return;
+    }
+    if (accion !== 'ABRIR') return;
+    // Un respiro antes de reabrir: el navegador tira `InvalidStateError` si
+    // `start()` llega antes de que el reconocedor anterior termine de soltar
+    // el microfono, y ese error apagaria la cadena por fallos seguidos.
+    const t = setTimeout(() => {
+      if (
+        modoContinuo.current &&
+        cadenaActiva.current &&
+        !detenidoAMano.current &&
+        !requiereAtencionRef.current
+      ) {
+        iniciarEscucha();
+      }
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requiereAtencion, escuchando, continuo]);
 
   function elegirArticulo(a: ArticuloLocal, score: number | null = null) {
     setActivo(a);
@@ -1285,7 +1426,10 @@ export default function Contar() {
                         }`}
                       />
                     </span>
-                    Seguido
+                    {/* Con las tarjetas de candidatos en pantalla la cadena
+                        esta pausada, no muerta. Decirlo evita la lectura de
+                        "el interruptor esta encendido pero no me escucha". */}
+                    {continuo && requiereAtencion ? 'En pausa' : 'Seguido'}
                   </button>
                 )}
               </div>

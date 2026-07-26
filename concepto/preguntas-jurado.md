@@ -241,7 +241,7 @@ del mercado: salen de cómo ustedes cuentan hoy."*
 
 **Corta:** *"Bastante, y lo usamos como herramienta, no como excusa. Lo que importa es que
 cada decisión de diseño sale de algo que ustedes dijeron en las sesiones, y que está
-verificado: 86 pruebas automatizadas más 9 end-to-end, incluida una que falla si el conteo deja de ser ciego."*
+verificado: 96 pruebas automatizadas más 9 end-to-end, incluida una que falla si el conteo deja de ser ciego."*
 
 ---
 
@@ -254,7 +254,7 @@ verificado: 86 pruebas automatizadas más 9 end-to-end, incluida una que falla s
 | Acierto del emparejador | **94,3% exacto · 99,4% en top-5** |
 | Tiempo por consulta | **0,101 ms** |
 | Precisión del auto-aceptado | **99,8%** sobre 3.517 casos |
-| Pruebas automatizadas | **86** (72 del núcleo + 10 del conteo ciego + 4 de la interfaz) + **9 end-to-end** con Playwright |
+| Pruebas automatizadas | **96** (72 del núcleo + 10 del conteo ciego + 14 de la interfaz) + **9 end-to-end** con Playwright |
 | Suciedad heredada que se maneja | 79 saldos negativos · 16 decimales en artículos por unidad · 252 filas sin número |
 | Nombres truncados por el sistema origen | **51** a exactamente 40 caracteres |
 | Digitación que se elimina | **~2 días por ciclo** (dato de ustedes) |

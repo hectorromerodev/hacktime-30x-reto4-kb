@@ -24,7 +24,7 @@ en una frase, o guardado para el README y el Q&A. Nada se pierde; nada estorba.
 | 4 | **Panel del líder + cierre firmado + export en su formato** | Es lo que la dueña del proceso pidió textualmente: contado contra sistema, sin descargar nada, y el archivo con sus propias columnas | **Cámara** (beat 4) |
 | 5 | **Identidad Colsubsidio, pensada para la bodega** | Base clara porque contra el sol un fondo claro se lee mejor; contrastes medidos (WCAG), controles ≥44 px. El jurado la *ve* en cada toma — no se gasta ni una palabra en decirla | **Se ve sola**, todo el video |
 | 6 | **Voz con dictado continuo** | El mic se reabre solo tras cada frase: se cuenta hablando, sin tocar | **Cámara si la red coopera** (beat 1); si no, teclado y el guion no cambia |
-| 7 | **No es maqueta** | Desplegado, 86 tests unitarios y de API + 9 E2E, PWA en las tablets que ya tienen | **Una frase** en el cierre + README |
+| 7 | **No es maqueta** | Desplegado, 96 tests unitarios y de API + 9 E2E, PWA en las tablets que ya tienen | **Una frase** en el cierre + README |
 | 8 | **Ciego garantizado por arquitectura Y por rol** | `SD` nunca viaja a la tablet, y las rutas de reporte exigen rol LIDER (fuga verificada y tapada) | Q&A (bloque 2) |
 | 9 | **Conflicto entre contadores: nunca se suma en silencio** | Dos personas cuentan lo mismo → queda en conflicto y el líder decide. Responde la pregunta 20 de Colsubsidio | Q&A + demo de finalistas |
 | 10 | **Fuzzy match 99,4 % acc@5, <1 ms, sin red ni dependencias** | Es la respuesta a "¿dónde está la IA?": la que *sí* se puede desplegar en una bodega sin señal | Q&A (bloque 3) |
@@ -139,7 +139,7 @@ pestaña **Diferencias** (que se vea la columna **Sin explicar** y la merma) →
 ## 1:43 – 2:00 · Equipo y siguiente paso
 
 > «Somos **Hector Romero, Ayrton Santos, Gerardo Martinez y Rodrigo Sauceda**. Esto **no es
-> una maqueta**: está desplegado, con ochenta y seis tests, y corre en las tablets que
+> una maqueta**: está desplegado, con noventa y seis tests, y corre en las tablets que
 > **ya tienen**, con el catálogo que **ya existe**. Siguiente paso: un **piloto en Piscilago
 > el próximo cierre de mes**. Y una cosa de frente: **la voz necesita red** — por eso nunca
 > es el único camino: teclado, búsqueda y escáner funcionan sin señal. Si funciona en

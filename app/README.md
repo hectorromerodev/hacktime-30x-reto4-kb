@@ -593,35 +593,34 @@ Además, en `apps/web`:
 pnpm --filter web test
 ```
 
-**4 tests** sobre `rangoHabitual()` — el texto del «¿Por qué?» de la regla R8. Verifican
-que use la unidad real del artículo (litros, no "unidades") y que el rango siempre
-admita varios valores, es decir que **nunca** deje deducir la cantidad del sistema.
+**14 tests** en total:
+
+| Módulo | Tests | Qué cubre |
+|---|---|---|
+| `rangoHabitual.test.ts` | 4 | El texto del «¿Por qué?» de la regla R8: que use la unidad real del artículo (litros, no "unidades") y que el rango siempre admita varios valores — es decir, que **nunca** deje deducir la cantidad del sistema |
+| `dictadoSeguido.test.ts` | 10 | La máquina de estados del dictado seguido: que el micrófono se cierre cuando la pantalla espera un toque, que se reanude al resolverlo, y un barrido de las 64 combinaciones que comprueba la invariante — nunca abierto sobre un diálogo |
 
 ### 9.2 E2E (Playwright)
 
-Requiere el stack corriendo (`docker compose up -d`). Se ejecutan en un contenedor
-Docker con Playwright + Chromium, conectado a la misma red que los servicios. El
-contenedor instala primero las dependencias del workspace (`web` + `@conteo/core`)
-con pnpm: la imagen de Playwright no trae `@playwright/test`, y como `web` depende de
-`@conteo/core` vía `workspace:*`, `npm ci` no sirve.
+Requiere el stack corriendo (`docker compose up -d`) y los navegadores de Playwright
+instalados una sola vez:
 
 ```bash
-cd app
-docker run --rm \
-  --network conteo-inventarios_default \
-  -e PLAYWRIGHT_BASE=http://web:3000 \
-  -v "$PWD:/app" \
-  -w /app \
-  mcr.microsoft.com/playwright:v1.61.1-jammy \
-  bash -c 'corepack enable && pnpm install --frozen-lockfile --filter web... && cd apps/web && npx playwright test'
+cd app/apps/web
+npx playwright install chromium
+npx playwright test
 ```
+
+Corren contra `https://localhost`, que es Caddy. **Tiene que ser HTTPS**: la cookie de
+sesión lleva `Secure` en producción, y la imagen del contenedor de la API corre con
+`NODE_ENV=production`. Apuntar los tests a un origen `http://` hace que el navegador
+descarte la cookie y todos los flujos que pasan por el PIN fallan con *"Sesión no
+válida"* — un fallo que no tiene nada que ver con lo que se está probando.
 
 | Archivo | Tests | Qué cubre |
 |---|---|---|
 | `tests/ingreso.spec.ts` | 4 | Carga de pantalla, flujo usuario→PIN→bodegas, PIN incorrecto, botón Atrás |
 | `tests/conteo.spec.ts` | 5 | Entrar a bodega, seleccionar+contar+guardar, anomalía fuera de escala, búsqueda, offline |
-
-> **Nota:** La imagen `mcr.microsoft.com/playwright` se descarga una sola vez (~750 MB).
 
 ---
 
