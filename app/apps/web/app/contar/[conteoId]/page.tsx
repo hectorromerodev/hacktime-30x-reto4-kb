@@ -92,11 +92,45 @@ export default function Contar() {
   const [familia, setFamilia] = useState<string>('TODAS');
   const [escuchando, setEscuchando] = useState(false);
   const [parcial, setParcial] = useState('');
+
+  /**
+   * Dictado continuo: el micrófono se vuelve a abrir solo tras cada frase, y
+   * lo que se entiende sin ambigüedad se guarda sin pedir confirmación.
+   *
+   * "Sin ambigüedad" es estricto a propósito: coincidencia de artículo por
+   * encima del umbral de auto-aceptación, cantidad reconocida, y ninguna
+   * anomalía. Cualquier otra cosa detiene el dictado y pregunta. Guardar a
+   * ciegas por ir rápido sería el error que este producto elimina.
+   */
+  const [continuo, setContinuo] = useState(false);
+  useEffect(() => {
+    setContinuo(localStorage.getItem('dictadoContinuo') === '1');
+  }, []);
+  const modoContinuo = useRef(false);
+  modoContinuo.current = continuo;
+  /** Lo pone el usuario al soltar/cancelar: corta la cadena de reinicios. */
+  const detenidoAMano = useRef(false);
+  /** Errores seguidos; con varios se apaga solo para no entrar en bucle. */
+  const fallosSeguidos = useRef(0);
+  const [dictados, setDictados] = useState(0);
+
+  /**
+   * El manejador de voz se crea una sola vez (useCallback sin dependencias),
+   * así que lee usuario y capturas por referencia en vez de capturarlos.
+   */
+  const usuarioRef = useRef<Usuario | null>(null);
+  const capturasRef = useRef<CapturaLocal[]>([]);
+  /** Para no reabrir el micrófono mientras hay un diálogo esperando. */
+  const anomaliasRef = useRef<Anomalia[] | null>(null);
   const [escaneando, setEscaneando] = useState(false);
   const detener = useRef<(() => void) | null>(null);
   /** Momento del pointerdown, para distinguir un toque de un mantener. */
   const inicioPulsacion = useRef(0);
   const permisoOk = useRef(false);
+
+  usuarioRef.current = usuario;
+  capturasRef.current = capturas;
+  anomaliasRef.current = anomalias;
 
   const indice = useMemo(
     () => (articulos.length ? construirIndice(articulos) : null),
@@ -230,6 +264,69 @@ export default function Contar() {
   );
 
   // ── Voz ────────────────────────────────────────────────────────────────
+  /**
+   * Guarda directo, sin pasar por la pantalla de captura.
+   *
+   * Devuelve `true` si se guardó. Si devuelve `false` es porque saltó una
+   * anomalía: deja el artículo cargado y el diálogo abierto para resolverlo.
+   */
+  const capturarDirecto = useCallback(
+    async (
+      a: ArticuloLocal,
+      valor: number,
+      opciones: { metodo: CapturaLocal['metodo']; textoCrudo?: string | null; score?: number | null },
+    ): Promise<boolean> => {
+      const yo = usuarioRef.current;
+      if (!yo) return false;
+
+      const yaContadoPor = capturasRef.current.find(
+        (c) => c.articuloId === a.id && c.usuarioNombre !== yo.nombre,
+      );
+      const detectadas = evaluarAnomalias({
+        cantidad: valor,
+        unidadCapturada: a.unidad as Unidad,
+        unidadCatalogo: a.unidad as Unidad,
+        nombreArticulo: a.nombre.trim(),
+        exp10: a.exp10,
+        scoreMatch: opciones.score ?? null,
+        yaContadoPor: yaContadoPor?.usuarioNombre ?? null,
+      });
+
+      if (detectadas.length > 0) {
+        setMetodo(opciones.metodo);
+        setTextoCrudo(opciones.textoCrudo ?? null);
+        elegirArticulo(a, opciones.score ?? null);
+        setCantidad(String(valor).replace('.', ','));
+        setAnomalias(detectadas);
+        setMotivo(null);
+        return false;
+      }
+
+      await capturar({
+        clientId: crypto.randomUUID(),
+        conteoId,
+        articuloId: a.id,
+        articuloNombre: a.nombre.trim(),
+        cantidad: valor,
+        unidad: a.unidad as Unidad,
+        metodo: opciones.metodo,
+        textoCrudo: opciones.textoCrudo ?? null,
+        scoreMatch: opciones.score ?? null,
+        anomalias: [],
+        capturadoEn: new Date().toISOString(),
+        usuarioNombre: yo.nombre,
+        sincronizada: false,
+      });
+      setUltimoContado({
+        nombre: a.nombre.trim(),
+        cantidad: valor,
+        unidad: a.unidad as Unidad,
+      });
+      return true;
+    },
+    [conteoId],
+  );
+
   const alResultadoVoz = useCallback(
     (r: ResultadoVoz) => {
       setEscuchando(false);
@@ -237,6 +334,33 @@ export default function Contar() {
       setTextoCrudo(r.transcripcion);
       setMetodo('VOZ');
       setAvisoVoz(r.avisos[0] ?? null);
+
+      // ── Dictado continuo ────────────────────────────────────────────
+      // Solo se guarda solo cuando NO hay nada que interpretar: artículo
+      // inequívoco y cantidad reconocida. Si falta cualquiera de las dos,
+      // cae al camino normal y el dictado se detiene para preguntar.
+      if (
+        modoContinuo.current &&
+        r.candidatos.length > 0 &&
+        r.cantidad !== null &&
+        decidir(r.candidatos) === 'AUTO'
+      ) {
+        const c = r.candidatos[0];
+        void capturarDirecto(c.articulo as ArticuloLocal, r.cantidad, {
+          metodo: 'VOZ',
+          textoCrudo: r.transcripcion,
+          score: c.score,
+        }).then((guardado) => {
+          if (guardado) {
+            setDictados((n) => n + 1);
+            setAvisoVoz(null);
+          } else {
+            // Saltó una anomalía: se corta la cadena y se resuelve a mano.
+            detenidoAMano.current = true;
+          }
+        });
+        return;
+      }
 
       if (r.candidatos.length === 0) {
         // Se repite lo que se entendió: deja ver de un vistazo si el
@@ -292,6 +416,9 @@ export default function Contar() {
         setEscuchando(false);
         setParcial('');
         setAvisoVoz(m);
+        // "No se escuchó nada" es normal entre frases del dictado continuo;
+        // el resto de errores sí cuentan para apagarlo.
+        if (!m.startsWith('No se escuchó')) fallosSeguidos.current += 1;
         // Si el navegador dijo que no hay permiso, se averigua el motivo real
         // para poder decirle al contador que hacer.
         if (m.includes('bloqueado') && !permisoOk.current) {
@@ -301,7 +428,22 @@ export default function Contar() {
           });
         }
       },
-      () => setEscuchando(false),
+      () => {
+        setEscuchando(false);
+        // Dictado continuo: se vuelve a abrir el micrófono solo. Se corta si
+        // el contador lo detuvo, si hay un diálogo abierto, o tras varios
+        // fallos seguidos — un reinicio ciego en bucle vaciaría la batería.
+        if (
+          modoContinuo.current &&
+          !detenidoAMano.current &&
+          fallosSeguidos.current < 3 &&
+          !anomaliasRef.current
+        ) {
+          setTimeout(() => {
+            if (modoContinuo.current && !detenidoAMano.current) iniciarEscucha();
+          }, 350);
+        }
+      },
     );
   }
 
@@ -324,10 +466,13 @@ export default function Contar() {
   function alPresionarMicrofono() {
     if (escuchando) {
       // Segundo toque durante la escucha: cierra.
+      detenidoAMano.current = true;
       terminarEscucha();
       inicioPulsacion.current = 0;
       return;
     }
+    detenidoAMano.current = false;
+    fallosSeguidos.current = 0;
     inicioPulsacion.current = performance.now();
     iniciarEscucha();
   }
@@ -336,10 +481,24 @@ export default function Contar() {
     if (!inicioPulsacion.current) return;
     const duracion = performance.now() - inicioPulsacion.current;
     inicioPulsacion.current = 0;
+    // En dictado continuo el micrófono se queda abierto pase lo que pase:
+    // la idea es encadenar frases sin volver a tocar nada.
+    if (modoContinuo.current) return;
     // Mantener presionado -> se cierra al soltar.
     // Toque corto -> se deja abierto; el reconocedor cierra solo al terminar
     // la frase, o el contador vuelve a tocar.
     if (duracion >= UMBRAL_TOQUE_MS) terminarEscucha();
+  }
+
+  function cambiarContinuo(valor: boolean) {
+    setContinuo(valor);
+    localStorage.setItem('dictadoContinuo', valor ? '1' : '0');
+    if (!valor) {
+      detenidoAMano.current = true;
+      terminarEscucha();
+    } else {
+      setDictados(0);
+    }
   }
 
   function elegirArticulo(a: ArticuloLocal, score: number | null = null) {
@@ -687,6 +846,21 @@ export default function Contar() {
               )}
             </div>
 
+            {/* Dictado continuo: el micrófono se reabre solo tras cada frase
+                y lo inequívoco se guarda sin preguntar. */}
+            <label className="flex shrink-0 flex-col items-center gap-1 text-[11px] text-tenue">
+              <input
+                type="checkbox"
+                checked={continuo}
+                onChange={(e) => cambiarContinuo(e.target.checked)}
+                className="h-6 w-10 accent-acento"
+              />
+              continuo
+              {continuo && dictados > 0 && (
+                <span className="text-acento">{dictados}</span>
+              )}
+            </label>
+
             <button
               onClick={() => setEscaneando(true)}
               className="toque rounded-xl border border-borde px-4 text-sm"
@@ -738,51 +912,15 @@ export default function Contar() {
            * exactamente el error que este producto elimina.
            */
           onCapturaRapida={async (a, valor, codigo) => {
-            if (!usuario) return false;
-
-            const yaContadoPor = capturas.find(
-              (c) => c.articuloId === a.id && c.usuarioNombre !== usuario.nombre,
-            );
-            const detectadas = evaluarAnomalias({
-              cantidad: valor,
-              unidadCapturada: a.unidad as Unidad,
-              unidadCatalogo: a.unidad as Unidad,
-              nombreArticulo: a.nombre.trim(),
-              exp10: a.exp10,
-              yaContadoPor: yaContadoPor?.usuarioNombre ?? null,
-            });
-
-            if (detectadas.length > 0) {
-              setEscaneando(false);
-              setMetodo('CAMARA');
-              setTextoCrudo(codigo);
-              elegirArticulo(a);
-              setCantidad(String(valor).replace('.', ','));
-              setAnomalias(detectadas);
-              setMotivo(null);
-              return false;
-            }
-
-            await capturar({
-              clientId: crypto.randomUUID(),
-              conteoId,
-              articuloId: a.id,
-              articuloNombre: a.nombre.trim(),
-              cantidad: valor,
-              unidad: a.unidad as Unidad,
+            // Mismo camino que el dictado continuo: una sola implementación
+            // de las reglas, para que las dos vías no puedan divergir.
+            const guardado = await capturarDirecto(a, valor, {
               metodo: 'CAMARA',
               textoCrudo: codigo,
-              anomalias: [],
-              capturadoEn: new Date().toISOString(),
-              usuarioNombre: usuario.nombre,
-              sincronizada: false,
             });
-            setUltimoContado({
-              nombre: a.nombre.trim(),
-              cantidad: valor,
-              unidad: a.unidad as Unidad,
-            });
-            return true;
+            // Si saltó una anomalía hay que salir de la cámara para resolverla.
+            if (!guardado) setEscaneando(false);
+            return guardado;
           }}
         />
       )}
