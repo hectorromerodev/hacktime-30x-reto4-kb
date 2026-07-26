@@ -18,11 +18,20 @@ export class ErrorApi extends Error {
 }
 
 export async function api<T>(ruta: string, init?: RequestInit): Promise<T> {
+  // El content-type SOLO va cuando hay cuerpo.
+  //
+  // Anunciar `application/json` en una peticion sin cuerpo hace que Fastify
+  // responda 400 (FST_ERR_CTP_EMPTY_JSON_BODY). Es lo que rompia el boton
+  // Salir: el POST a /auth/logout no lleva cuerpo, nunca llegaba a ejecutarse
+  // y la sesion seguia viva. No se vio con curl porque curl no manda esa
+  // cabecera por su cuenta.
+  const tieneCuerpo = init?.body != null;
+
   const res = await fetch(`${BASE}${ruta}`, {
     ...init,
     credentials: 'include',
     headers: {
-      'content-type': 'application/json',
+      ...(tieneCuerpo ? { 'content-type': 'application/json' } : {}),
       ...(init?.headers ?? {}),
     },
   });

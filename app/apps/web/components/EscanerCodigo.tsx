@@ -140,16 +140,29 @@ export function EscanerCodigo({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black">
-      <div className="flex items-center justify-between px-4 py-3">
-        <p className="text-sm text-tenue">Apunta al código o al QR del estante</p>
-        <button onClick={onCerrar} className="toque px-4 text-sm">
-          Cerrar
+    <div className="alto-pantalla fixed inset-0 z-50 flex flex-col bg-black">
+      <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
+        <p className="min-w-0 text-sm text-tenue">Apunta al código o al QR del estante</p>
+        <button
+          onClick={onCerrar}
+          className="toque shrink-0 rounded-xl border border-borde px-5 text-sm font-medium"
+        >
+          Cancelar
         </button>
       </div>
 
       <div className="relative flex-1 overflow-hidden">
         <video ref={video} playsInline muted className="h-full w-full object-cover" />
+
+        {/* Salida grande sobre el video: en la tablet, con el aparato en una
+            mano, el boton de la cabecera queda lejos del pulgar. */}
+        <button
+          onClick={onCerrar}
+          aria-label="Salir del escáner"
+          className="toque absolute right-4 top-4 flex items-center justify-center rounded-full bg-black/70 px-5 text-2xl text-white backdrop-blur"
+        >
+          ✕
+        </button>
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div
             className={`h-56 w-56 rounded-2xl border-4 ${
@@ -192,6 +205,9 @@ export function EscanerCodigo({
               className="toque rounded-xl border border-borde text-base"
             >
               No es · escanear otro
+            </button>
+            <button onClick={onCerrar} className="py-2 text-sm text-tenue">
+              Salir del escáner
             </button>
           </div>
         </div>

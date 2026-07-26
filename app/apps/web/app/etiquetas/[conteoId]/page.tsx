@@ -77,7 +77,11 @@ export default function Etiquetas() {
           </p>
         </div>
         <button
-          onClick={() => window.print()}
+          // `window.print()` es sincrono y bloquea el hilo mientras el
+          // navegador arma la vista previa: pulsarlo directo congelaba la
+          // interfaz unos milisegundos (aviso de INP). Cediendo un fotograma,
+          // el boton alcanza a responder antes de que el hilo se ocupe.
+          onClick={() => requestAnimationFrame(() => window.print())}
           className="rounded-xl bg-black px-5 py-3 font-medium text-white"
         >
           Imprimir
