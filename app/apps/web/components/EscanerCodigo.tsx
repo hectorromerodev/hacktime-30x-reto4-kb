@@ -56,6 +56,8 @@ export function EscanerCodigo({
     articulo: ArticuloLocal;
     codigo: string;
   } | null>(null);
+  /** true cuando se está usando el lector en JavaScript (iPhone/iPad). */
+  const [usandoRespaldo, setUsandoRespaldo] = useState(false);
 
   /**
    * El catálogo se guarda en referencias para que el efecto de la cámara NO
@@ -74,19 +76,54 @@ export function EscanerCodigo({
     let flujo: MediaStream | null = null;
     let animacion = 0;
     let cancelado = false;
+    let detenerZxing: (() => void) | null = null;
+
+    /** Un código leído, venga del lector que venga. */
+    const alLeer = (valor: string) => {
+      if (cancelado || pausado.current) return;
+      const articulo = resolver(valor, datos.current.codigos, datos.current.articulos);
+      if (articulo) {
+        if (navigator.vibrate) navigator.vibrate(60);
+        setPorConfirmar({ articulo, codigo: valor });
+      } else {
+        setUltimo(valor);
+      }
+    };
 
     (async () => {
       const Ctor = (window as unknown as Record<string, unknown>).BarcodeDetector as
         | (new (o: { formats: string[] }) => DetectorCodigos)
         | undefined;
 
+      // ── Camino 2: navegadores sin BarcodeDetector ──────────────────────
+      // Es el caso de TODO iPhone y iPad: en iOS los navegadores usan WebKit,
+      // así que ni Safari ni Chrome traen esa API. Antes se cortaba aquí y la
+      // cámara ni siquiera se abría. Se usa un lector en JavaScript, cargado
+      // solo en ese caso para no engordar el paquete de quien no lo necesita.
       if (!Ctor) {
-        setError(
-          'Este navegador no trae lector de códigos. Usa la voz o la búsqueda por nombre.',
-        );
+        try {
+          const { BrowserMultiFormatReader } = await import('@zxing/browser');
+          if (cancelado || !video.current) return;
+
+          const lector = new BrowserMultiFormatReader();
+          const control = await lector.decodeFromVideoDevice(
+            undefined, // la cámara que el navegador elija (trasera en móvil)
+            video.current,
+            (resultado) => {
+              if (resultado) alLeer(resultado.getText());
+            },
+          );
+          detenerZxing = () => control.stop();
+          setUsandoRespaldo(true);
+        } catch {
+          setError(
+            'No se pudo abrir la cámara. Revisa los permisos, o usa la voz y la búsqueda por nombre.',
+          );
+        }
         return;
       }
 
+      // ── Camino 1: BarcodeDetector nativo (Chrome/Android) ──────────────
       try {
         flujo = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment' },
@@ -114,13 +151,8 @@ export function EscanerCodigo({
         try {
           const hallados = await detector.detect(video.current);
           for (const h of hallados) {
-            const articulo = resolver(h.rawValue, datos.current.codigos, datos.current.articulos);
-            if (articulo) {
-              if (navigator.vibrate) navigator.vibrate(60);
-              setPorConfirmar({ articulo, codigo: h.rawValue });
-              return;
-            }
-            setUltimo(h.rawValue);
+            alLeer(h.rawValue);
+            if (resolver(h.rawValue, datos.current.codigos, datos.current.articulos)) return;
           }
         } catch {
           /* fotograma ilegible, se sigue intentando */
@@ -133,7 +165,12 @@ export function EscanerCodigo({
     return () => {
       cancelado = true;
       cancelAnimationFrame(animacion);
+      detenerZxing?.();
       flujo?.getTracks().forEach((t) => t.stop());
+      // El lector de respaldo abre su propio flujo: se apaga también aquí por
+      // si acaso, para no dejar la cámara encendida al salir.
+      const s = video.current?.srcObject as MediaStream | null;
+      s?.getTracks?.().forEach((t) => t.stop());
     };
     // Sin dependencias: la cámara se abre una vez y se cierra al desmontar.
     // Los datos que cambian se leen por referencia (ver `datos` arriba).
@@ -142,7 +179,10 @@ export function EscanerCodigo({
   return (
     <div className="alto-pantalla fixed inset-0 z-50 flex flex-col bg-black">
       <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
-        <p className="min-w-0 text-sm text-tenue">Apunta al código o al QR del estante</p>
+        <p className="min-w-0 text-sm text-tenue">
+          Apunta al código o al QR del estante
+          {usandoRespaldo && <span className="block text-xs">lector compatible · puede tardar un poco más</span>}
+        </p>
         <button
           onClick={onCerrar}
           className="toque shrink-0 rounded-xl border border-borde px-5 text-sm font-medium"
