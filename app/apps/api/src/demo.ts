@@ -84,12 +84,31 @@ async function main() {
   const bodega = await prisma.bodega.findUnique({ where: { slug: BODEGA } });
   if (!bodega) throw new Error(`No existe la bodega ${BODEGA}. ¿Corriste el seed?`);
 
-  const existente = await prisma.conteo.findUnique({
-    where: { bodegaId_periodo: { bodegaId: bodega.id, periodo: PERIODO } },
+  /*
+   * `findMany` + borrar todos, no `findUnique`.
+   *
+   * La llave unica de Conteo dejo de ser (bodega, periodo) y paso a
+   * (bodega, periodo, secuencia) para permitir recuentos dentro del mismo mes
+   * — el propio esquema lo documenta. Este script se quedo apuntando al nombre
+   * viejo (`bodegaId_periodo`) y fallaba con `Unknown argument`, asi que era
+   * imposible sembrar los datos de la demostracion.
+   *
+   * Buscar por la llave nueva fijando `secuencia: 1` compilaria, pero dejaria
+   * atras los conteos de secuencia 2 o 3 si alguien probo un recuento: la
+   * bodega arrancaria la demo con datos de dos sesiones mezclados. Se borran
+   * todos los del periodo, que es lo que "reiniciar la demostracion" significa.
+   */
+  const previos = await prisma.conteo.findMany({
+    where: { bodegaId: bodega.id, periodo: PERIODO },
+    select: { id: true },
   });
-  if (existente) {
-    await prisma.conteo.delete({ where: { id: existente.id } });
-    console.log('Conteo de demostración anterior eliminado.');
+  if (previos.length) {
+    await prisma.conteo.deleteMany({ where: { id: { in: previos.map((c) => c.id) } } });
+    console.log(
+      previos.length === 1
+        ? 'Conteo de demostración anterior eliminado.'
+        : `${previos.length} conteos de demostración anteriores eliminados.`,
+    );
   }
   if (limpiar) {
     console.log('Listo (solo limpieza).');

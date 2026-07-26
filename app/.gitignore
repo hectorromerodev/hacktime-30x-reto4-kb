@@ -4,6 +4,12 @@ dist/
 out/
 *.tsbuildinfo
 
+# Restos de correr los E2E en el contenedor de Playwright con el repo montado
+# (ver README §9.2): el `pnpm install` de dentro deja su almacen aqui.
+.pnpm-store/
+test-results/
+playwright-report/
+
 # NUNCA commitear credenciales — este repo es público por reglas del hackathon
 .env
 .env.*

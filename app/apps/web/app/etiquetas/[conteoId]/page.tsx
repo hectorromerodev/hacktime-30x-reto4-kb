@@ -103,7 +103,7 @@ export default function Etiquetas() {
           // interfaz unos milisegundos (aviso de INP). Cediendo un fotograma,
           // el boton alcanza a responder antes de que el hilo se ocupe.
           onClick={() => requestAnimationFrame(() => window.print())}
-          className="rounded-xl bg-black px-5 py-3 font-medium text-white"
+          className="rounded-xl bg-acento px-5 py-3 font-medium text-white"
         >
           Imprimir
         </button>

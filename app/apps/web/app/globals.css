@@ -1,24 +1,80 @@
 @import 'tailwindcss';
 
 /*
- * Diseño para tablet sostenida con un brazo y operada con el pulgar de la otra
- * mano, en una bodega. Tres consecuencias:
+ * Diseño para un dispositivo sostenido con una mano y operado con el pulgar de
+ * la otra, en una bodega. Cuatro consecuencias:
+ *  - el telefono es el caso base, no la tablet;
  *  - todo lo interactivo vive en la mitad inferior de la pantalla;
- *  - ningun objetivo tactil baja de 56 px;
- *  - alto contraste, porque hay bodegas con luz mala y pantallas con reflejo.
+ *  - ningun objetivo tactil baja de 44 px (56 en el flujo de conteo);
+ *  - alto contraste, porque hay bodegas con reflejo y otras con sol directo.
  */
 
+/*
+ * PALETA — identidad Colsubsidio sobre base clara.
+ *
+ *   #004B8D  azul de marca      #FFD000  amarillo de marca      blanco
+ *
+ * Base clara y no oscura por la bodega con sol directo: contra un reflejo, un
+ * fondo claro se lee mejor que uno oscuro.
+ *
+ * Dos reglas que salen de medir el contraste, no del gusto:
+ *
+ * 1. EL AMARILLO NO LLEVA TEXTO SOBRE FONDO CLARO. #FFD000 sobre blanco da
+ *    1.47:1 — ilegible para cualquiera. Solo vale como RELLENO con texto
+ *    oscuro encima (#0A2540 sobre amarillo = 10.56:1). Para texto de aviso
+ *    existe `--alerta-texto`, un ambar oscurecido que si pasa (6.14:1).
+ *
+ * 2. EL BLANCO PURO NO ES EL FONDO. #FFFFFF a pantalla completa cansa la vista
+ *    en una jornada de conteo. El fondo es hueso frio (#F4F6FA), afin al azul
+ *    de marca, y conserva AAA contra el azul (8.12:1). El blanco puro queda
+ *    para las tarjetas, que asi se separan del fondo sin necesitar sombra.
+ *
+ * El color aqui SIGNIFICA algo, asi que los tokens son semanticos:
+ *   acento  = marca y accion primaria (Guardar, foco)
+ *   alerta  = requiere atencion (anomalia, merma, sin contar)
+ *   peligro = diferencia negativa, destructivo
+ *
+ * Ya no hay verde: el amarillo de marca ocupa justo el hueco del ambar de
+ * aviso, asi que dejar tambien un verde de exito metia cuatro colores de
+ * estado compitiendo en la misma pantalla.
+ */
 :root {
-  --fondo: #0b1220;
-  --superficie: #131d2f;
-  --superficie-alta: #1c2942;
-  --borde: #2a3a58;
-  --texto: #f1f5f9;
-  --texto-tenue: #94a3b8;
-  --acento: #22c55e;
-  --acento-oscuro: #16a34a;
-  --alerta: #f59e0b;
-  --peligro: #ef4444;
+  --fondo: #f4f6fa;
+  --superficie: #ffffff;
+  --superficie-alta: #e8eef6;
+  /* Agrupacion, decorativo (1.36:1: no delimita nada pulsable por si solo). */
+  --borde: #c9d6e5;
+  /* Contorno de control interactivo: 3.57:1, cumple WCAG 1.4.11. */
+  --borde-fuerte: #6b84a0;
+  --texto: #0a2540;
+  /* 6.26:1 sobre el fondo y 5.80:1 sobre superficie-alta. El tono mas claro
+     que probamos (#5A6E85) caia a 4.49:1 sobre superficie-alta y fallaba. */
+  --texto-tenue: #4a5d72;
+  --acento: #004b8d;
+  --acento-oscuro: #003666;
+  --alerta: #ffd000;
+  --alerta-texto: #7a5600;
+  --peligro: #c0392b;
+
+  /*
+   * Complementarios, derivados de los dos colores de marca. Todos medidos
+   * sobre el fondo hueso:
+   *
+   *   azul-medio  5.17:1   azul secundario, estados intermedios
+   *   azul-tinte    ---    SOLO superficie (7.56:1 contra el azul de marca)
+   *   teal        5.70:1   positivo: "cuadra", "sincronizado"
+   *   naranja     5.79:1   diferencia intermedia, el escalon antes del peligro
+   *
+   * El positivo es teal y no verde a proposito: es analogo al azul de marca,
+   * asi que armoniza en vez de meter un cuarto tono suelto, y ocupa el hueco
+   * que dejo el verde que se quito.
+   */
+  --azul-medio: #1b6ca8;
+  --azul-tinte: #e6eff8;
+  --teal: #0f6e5c;
+  --naranja: #9a4a00;
+  /* Velo de los dialogos: azul de marca translucido, no negro. */
+  --velo: rgb(10 37 64 / 0.45);
 }
 
 html,
@@ -41,20 +97,65 @@ body {
 }
 
 @theme {
-  --color-fondo: #0b1220;
-  --color-superficie: #131d2f;
-  --color-superficie-alta: #1c2942;
-  --color-borde: #2a3a58;
-  --color-tenue: #94a3b8;
-  --color-acento: #22c55e;
-  --color-alerta: #f59e0b;
-  --color-peligro: #ef4444;
+  --color-fondo: #f4f6fa;
+  --color-superficie: #ffffff;
+  --color-superficie-alta: #e8eef6;
+  --color-borde: #c9d6e5;
+  --color-borde-fuerte: #6b84a0;
+  --color-texto: #0a2540;
+  --color-tenue: #4a5d72;
+  --color-acento: #004b8d;
+  --color-alerta: #ffd000;
+  /* Para `text-alerta-texto`: el relleno amarillo no sirve como color de texto
+     sobre fondo claro (1.47:1). Ver la nota de la paleta. */
+  --color-alerta-texto: #7a5600;
+  --color-peligro: #c0392b;
+
+  /*
+   * Texto secundario SOBRE el azul de marca.
+   *
+   * Sustituye a las opacidades del blanco, que parecian inofensivas y no lo
+   * eran: medido, `text-white/60` sobre #004B8D da 4.20:1 y `white/40` da
+   * 2.70:1 — los dos por debajo del minimo de 4.5. El problema de la opacidad
+   * es que el resultado depende de lo que haya DEBAJO, asi que el mismo
+   * `white/60` pasa o falla segun donde se monte.
+   *
+   * Este color es solido: 6.29:1 sobre el azul y 4.90:1 sobre el tinte de
+   * `white/10`. Cumple en los dos sin depender del contexto.
+   */
+  --color-sobre-azul: #cddceb;
 }
 
 /* Objetivo tactil minimo. Se usa en todo boton del flujo de conteo. */
 .toque {
   min-height: 56px;
   min-width: 56px;
+}
+
+/*
+ * Objetivo tactil de los controles SECUNDARIOS (filtros de familia, alternar
+ * conteo/merma, motivos de baja).
+ *
+ * 56 px es lo correcto para lo que se pulsa cien veces por bodega, pero
+ * aplicarlo a nueve filtros en fila mas los seis motivos de merma consume una
+ * pantalla de telefono completa. 44 px es el minimo de las guias de Apple y
+ * Android: por debajo de eso el dedo falla de verdad, y estos controles estaban
+ * en 34.
+ */
+.toque-menor {
+  min-height: 44px;
+}
+
+/*
+ * Foco visible con teclado.
+ *
+ * `outline-none` en los campos deja sin rastro a quien navega con teclado (o
+ * con un lector de codigos que emula uno). Se marca solo cuando el navegador
+ * determina que el foco viene del teclado, asi que el dedo no lo dispara.
+ */
+:where(button, a, input, [role='button'], summary):focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
 }
 
 /*
@@ -74,19 +175,207 @@ body {
   height: 100dvh;
 }
 
+/*
+ * Variante para pantallas que SI pueden crecer y desplazarse (el ingreso, el
+ * diagnostico, el cierre del lider).
+ *
+ * Ahi `alto-pantalla` seria un error: fijar el alto recortaria el contenido que
+ * no cabe. Lo que se quiere es un minimo — llenar la pantalla real — dejando
+ * que crezca si hace falta. `min-h-screen` de Tailwind usa `100vh` y arrastra
+ * el mismo defecto: en movil centra respecto a una pantalla mas alta que la
+ * visible, y el teclado del PIN acababa parcialmente bajo la barra de
+ * direcciones.
+ */
+.min-alto-pantalla {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* Respeta la barra de gestos del telefono/tablet. */
 .margen-inferior-seguro {
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
 
+/*
+ * UNA TAREA POR PANTALLA.
+ *
+ * La pantalla de conteo hacia dos cosas a la vez: elegir articulo (lista,
+ * buscador, voz, escaner) y capturar cantidad (teclado, merma, guardar). Con
+ * las dos montadas se contaron 38 controles visibles a la vez en un telefono
+ * de 390 px, y 45 con el dialogo de anomalias abierto.
+ *
+ * Ahora son dos modos que NO conviven:
+ *
+ *   ELEGIR    la lista ocupa la pantalla; abajo voz, escaner y dictado continuo
+ *   CAPTURAR  el articulo elegido, el numero grande, el teclado y guardar
+ *
+ * Antes esto dependia de un umbral de ALTO de pantalla: se ocultaba la lista
+ * solo si no cabia. Eso resolvia el sintoma — en telefono la lista quedaba en
+ * 46 px y mostraba cero articulos — pero dejaba la pantalla partida en tablet,
+ * y sobre todo hacia que el comportamiento dependiera del dispositivo. La
+ * separacion es una decision de producto, no una consecuencia del tamaño.
+ *
+ * No se pierde nada al ocultar la lista: el nombre, el numero de catalogo y la
+ * unidad del articulo activo estan en la zona de captura, y "Cancelar" vuelve.
+ */
+main[data-panel='conteo'] .lista-articulos,
+main[data-panel='merma'] .lista-articulos {
+  display: none;
+}
+
+/*
+ * Con la lista oculta, la captura se queda con la pantalla: pegada ABAJO —
+ * donde llega el pulgar, que es el principio de esta hoja — y capaz de
+ * encogerse y desplazarse por dentro cuando no cabe (el panel de merma mide
+ * 755 px, mas que un iPhone SE entero). Sin esto, `overflow-hidden` del
+ * contenedor recorta el boton de guardar y deja el flujo sin salida.
+ */
+main[data-panel='conteo'] .zona-captura,
+main[data-panel='merma'] .zona-captura {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * El visor de la cantidad se come el espacio libre.
+ *
+ * Con la lista oculta sobraban ~660 px sobre el teclado. Anclar la captura
+ * abajo y dejar el hueco vacio arriba desperdiciaba media pantalla; en su lugar
+ * el articulo y la cifra crecen para llenarlo, como el visor de una
+ * calculadora. La cifra pasa de 36 px a 72: es el dato que hay que poder
+ * comprobar de un vistazo antes de guardar.
+ *
+ * `min-height: 0` para que pueda encogerse cuando el panel de merma no cabe.
+ */
+/*
+ * El visor es una TARJETA que ocupa el espacio libre, no una linea suelta.
+ *
+ * Al separar elegir de capturar sobraban ~450 px sobre el teclado. Dejarlos en
+ * blanco leia como pantalla a medio hacer; anclar la cifra abajo la pegaba al
+ * teclado pero el hueco seguia ahi. Convertida en tarjeta elevada, ese espacio
+ * pasa a ser el visor: el articulo arriba y la cantidad centrada y enorme, que
+ * es el dato a comprobar antes de guardar.
+ */
+.pantalla-cantidad {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  border-radius: 1rem;
+  background: var(--superficie);
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 2px rgb(10 37 64 / 0.06);
+}
+
+.pantalla-cantidad .cifra {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+/* Solo cuando hay sitio de sobra: en merma el panel ya llena la pantalla. */
+main[data-panel='conteo'] .pantalla-cantidad .cifra {
+  font-size: clamp(2.5rem, 22vw, 6rem);
+}
+
+/* En merma la tarjeta no crece: el panel de motivos y foto necesita el alto. */
+main[data-panel='merma'] .pantalla-cantidad {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+main[data-panel='merma'] .pantalla-cantidad .cifra {
+  flex: 0 0 auto;
+}
+
 .tecla {
-  @apply flex items-center justify-center rounded-xl border border-borde bg-superficie-alta text-2xl font-semibold text-white active:bg-acento active:text-black;
+  @apply flex items-center justify-center rounded-xl border border-borde bg-superficie text-2xl font-semibold text-texto shadow-sm active:bg-acento active:text-white active:shadow-none;
   min-height: 64px;
   user-select: none;
 }
 
+/*
+ * Teclas de ACCION (C, borrar, coma, +½) frente a los digitos.
+ *
+ * Eran doce bloques identicos: el 7 y el borrar tenian el mismo peso. En una
+ * tarea de cientos de pulsaciones eso hace fallar. Las acciones van sin
+ * elevacion, sobre la superficie hundida y con texto atenuado: se distinguen
+ * por material antes de leerlas.
+ */
+.tecla-accion {
+  @apply border-transparent bg-superficie-alta text-xl text-tenue shadow-none;
+}
+
 .tarjeta {
   @apply rounded-2xl border border-borde bg-superficie p-4;
+}
+
+/*
+ * Fila que se desplaza en horizontal (los filtros de familia) sin pintar la
+ * barra. En el telefono se arrastra con el dedo y la barra nunca aparece; en
+ * escritorio, con raton, aparecia una barra gris bajo los chips que no aporta
+ * nada. El desplazamiento sigue funcionando (rueda, arrastre, teclado); solo
+ * se oculta la barra.
+ */
+.sin-barra {
+  scrollbar-width: none; /* Firefox */
+}
+.sin-barra::-webkit-scrollbar {
+  display: none; /* WebKit/Blink */
+}
+
+/*
+ * PANTALLA CORTA (iPhone SE y parecidos, 667 px de alto).
+ *
+ * En el paso del PIN el contenido pedia 586 px dentro de un panel de 460:
+ * sobraban 126 px y "Regresar" caia por debajo del pliegue, al 121% de la
+ * pantalla. Justo el boton que existe para salir de un error no puede exigir
+ * que se descubra que hay que desplazarse.
+ *
+ * Se recuperan de tres sitios, ninguno esencial, y solo por debajo de 700 px:
+ *
+ *   cabecera mas compacta y logo a 40 px .... ~45 px
+ *   se oculta la inicial del paso PIN ....... ~68 px
+ *   teclas de 64 a 56 px (sigue sobre 44) ... ~32 px
+ *
+ * La inicial es refuerzo: el nombre grande sigue diciendo quien eres, que es
+ * lo que hay que poder comprobar antes de teclear.
+ */
+@media (max-height: 700px) {
+  .marca-entrada {
+    padding-top: 1.25rem;
+    padding-bottom: 1rem;
+  }
+
+  .marca-entrada img {
+    height: 2.5rem;
+  }
+
+  .avatar-pin {
+    display: none;
+  }
+
+  .panel-entrada .tecla {
+    min-height: 56px;
+  }
+
+  /* Los margenes del bloque de identidad y de los puntos. A 640 px (Android
+     antiguo, todavia comun) los tres recortes de arriba dejaban el boton 21 px
+     por debajo del borde; con esto entra con holgura. */
+  .puntos-pin {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
 }
 
 /* El microfono es el elemento mas grande de la pantalla a proposito. */

@@ -17,6 +17,17 @@ export const PIN_ANA = ['1', '1', '1', '1'];
  * Debe llamarse antes de `page.goto('/')`.
  */
 export async function configurarApi(page: Page) {
+  // Dos formas de correr el E2E:
+  //
+  //  1. Contra Caddy por HTTPS (base https://…, el modo por defecto): Caddy ya
+  //     enruta /api al servicio api y sirve la cookie Secure sin problema. No
+  //     hace falta interceptar nada.
+  //  2. Directo al contenedor web por HTTP (http://web:3000, sin Caddy): ahí sí
+  //     hay que reenviar /api al api y quitarle el flag Secure a la cookie, que
+  //     el navegador descartaría sobre http plano. Se activa con
+  //     PLAYWRIGHT_DIRECT=1.
+  if (process.env.PLAYWRIGHT_DIRECT !== '1') return;
+
   // Un solo interceptor: reenvía TODAS las llamadas /api/** al servicio API real,
   // que ya viene seedeado con los 4 usuarios demo, las 54 bodegas y el catálogo.
   // Nada se mockea — el login, la lista de bodegas y el conteo salen del backend
@@ -47,8 +58,8 @@ export async function configurarApi(page: Page) {
  */
 export async function ingresar(page: Page) {
   await page.goto('/');
-  await page.getByText('Ana Gómez').click();
+  await page.getByRole('button', { name: /Ana Gómez/ }).click();
   for (const d of PIN_ANA) {
-    await page.locator('.tecla').filter({ hasText: d }).click();
+    await page.getByTestId(`tecla-${d}`).click();
   }
 }

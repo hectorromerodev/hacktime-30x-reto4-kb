@@ -50,6 +50,7 @@ import {
 } from '@/lib/sync';
 import { escuchar, vozDisponible, pedirPermisoMicrofono, type ResultadoVoz } from '@/lib/voz';
 import { EscanerCodigo } from '@/components/EscanerCodigo';
+import { Hoja } from '@/components/ui/Hoja';
 
 interface RespuestaCatalogo {
   conteoId: string;
@@ -58,6 +59,16 @@ interface RespuestaCatalogo {
   articulos: ArticuloLocal[];
   codigos: { codigo: string; articuloId: string }[];
 }
+
+/**
+ * ¿Se muestra el interruptor de dictado seguido?
+ *
+ * Retirado por decision de producto: era un AJUSTE compitiendo con las dos
+ * acciones reales del panel (dictar y escanear), y solo tiene sentido con red y
+ * en Chrome o Edge. La logica se conserva entera y se enciende poniendo esto en
+ * `true`.
+ */
+const MOSTRAR_DICTADO_SEGUIDO: boolean = false;
 
 export default function Contar() {
   const { conteoId } = useParams<{ conteoId: string }>();
@@ -138,6 +149,15 @@ export default function Contar() {
    */
   const [continuo, setContinuo] = useState(false);
   useEffect(() => {
+    /*
+     * El interruptor de dictado seguido se retiro de la interfaz.
+     *
+     * El estado y toda su logica se conservan — el dictado seguido sigue
+     * funcionando si algo lo activa — pero YA NO se lee de `localStorage`: sin
+     * control visible, un dispositivo que lo hubiera encendido antes se
+     * quedaria en modo seguido para siempre y sin forma de apagarlo.
+     */
+    if (!MOSTRAR_DICTADO_SEGUIDO) return;
     setContinuo(localStorage.getItem('dictadoContinuo') === '1');
   }, []);
   const modoContinuo = useRef(false);
@@ -147,6 +167,13 @@ export default function Contar() {
   /** Errores seguidos; con varios se apaga solo para no entrar en bucle. */
   const fallosSeguidos = useRef(0);
   const [dictados, setDictados] = useState(0);
+  /*
+   * Si el navegador no reconoce voz, el dictado continuo no puede hacer nada.
+   * Se calcula una vez en el cliente porque `vozDisponible()` mira el objeto
+   * global del navegador y en el servidor no existe.
+   */
+  const [hayVoz, setHayVoz] = useState(true);
+  useEffect(() => setHayVoz(vozDisponible()), []);
 
   /**
    * El manejador de voz se crea una sola vez (useCallback sin dependencias),
@@ -665,35 +692,58 @@ export default function Contar() {
   const contados = contadosPorArticulo.size;
 
   return (
-    <main className="alto-pantalla mx-auto flex max-w-2xl flex-col overflow-hidden">
+    <main
+      className="alto-pantalla mx-auto flex max-w-5xl flex-col overflow-hidden"
+      /*
+       * Que panel esta abierto. En pantalla corta la lista se oculta, y el
+       * umbral depende del panel porque conteo mide 469 px y merma 739. La
+       * regla vive en globals.css (`MODO ENFOQUE`): es una consulta de ALTO de
+       * pantalla, y eso no se puede expresar con clases de utilidad.
+       */
+      data-panel={!activo ? 'lista' : tipo === 'MERMA' ? 'merma' : 'conteo'}
+    >
       {/* ── Cabecera: progreso y estado de red ── */}
-      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-borde px-3 py-3">
+      {/* Filete de marca, igual que en el hero de entrada: da presencia
+          constante al amarillo sin gastar la señal de alerta, que se reserva
+          para los rellenos grandes (merma y el dialogo de anomalias). */}
+      <header className="shrink-0 bg-acento px-3 pb-3 pt-2 text-white">
+      <div className="flex items-center justify-between gap-2">
         {/* Salida explícita. Antes el nombre de la bodega era el único modo de
             volver, y no se veía como un botón: tocaba usar el "atrás" del
             navegador. */}
         <button
           onClick={() => router.push('/')}
           aria-label="Salir de esta bodega"
-          className="toque flex shrink-0 items-center rounded-xl border border-borde px-3 text-lg"
+          className="toque flex shrink-0 items-center rounded-xl border border-white/30 px-3 text-lg transition-colors active:bg-white/15"
         >
           ←
         </button>
+        {/*
+          El nombre es TEXTO, no un boton.
+          Habia dos controles llamando a `router.push('/')`: el ← de 56 px y el
+          nombre de 224. El ← se añadio porque el nombre no se veia como boton,
+          pero no se quito el nombre — y dos controles distintos que hacen lo
+          mismo hacen suponer que hacen cosas distintas.
+        */}
         <div className="min-w-0 flex-1">
-          <button onClick={() => router.push('/')} className="w-full truncate text-left">
-            <span className="block truncate font-medium">{bodega}</span>
-            <span className="text-xs text-tenue">
-              {contados}/{total} artículos · {usuario?.nombre}
-            </span>
-          </button>
+          <p className="truncate font-semibold">{bodega}</p>
+          <p className="truncate text-xs text-sobre-azul">{usuario?.nombre}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {/* Se distingue "sin red" de "el servidor no responde": para el
               contador el efecto es el mismo (sigue contando), pero para quien
               soporta el punto de venta no lo es en absoluto. */}
+          {/*
+            En verde no se dice nada.
+            "En línea" era ruido permanente: informaba de que todo va bien, que
+            es el estado por defecto y no requiere ninguna accion. El aviso solo
+            aparece cuando hay algo que saber — sin red, servidor caido, o
+            capturas todavia sin enviar — y entonces en amarillo, porque
+            entonces SI importa.
+          */}
+          {(!enLinea || porEnviar > 0) && (
           <span
-            className={`rounded-full px-3 py-1 text-xs font-medium ${
-              enLinea ? 'bg-acento/20 text-acento' : 'bg-alerta/20 text-alerta'
-            }`}
+            className="rounded-full bg-alerta px-3 py-1 text-xs font-semibold text-texto"
             title={
               conexion === 'SERVIDOR_INALCANZABLE'
                 ? 'Hay red, pero el servidor no responde. Lo capturado se guarda y se envía solo cuando vuelva.'
@@ -702,42 +752,73 @@ export default function Contar() {
                   : 'Todo sincronizado con el servidor.'
             }
           >
-            {conexion === 'EN_LINEA'
-              ? 'En línea'
-              : conexion === 'SIN_RED'
-                ? 'Sin red'
-                : 'Servidor no responde'}
+            {conexion === 'SIN_RED'
+              ? 'Sin red'
+              : conexion === 'SERVIDOR_INALCANZABLE'
+                ? 'Servidor no responde'
+                : 'Sincronizando'}
             {porEnviar > 0 && ` · ${porEnviar} por enviar`}
           </span>
+          )}
           {usuario?.rol === 'LIDER' && (
             <button
               onClick={() => router.push(`/lider/${conteoId}`)}
-              className="rounded-full border border-borde px-3 py-1 text-xs"
+              className="toque-menor rounded-full border border-white/40 px-3 text-xs font-semibold transition-colors active:bg-white/15"
             >
               Cierre
             </button>
           )}
         </div>
-      </header>
-
-      <div className="h-1 shrink-0 bg-superficie">
-        <div
-          className="h-full bg-acento transition-all"
-          style={{ width: `${total ? (contados / total) * 100 : 0}%` }}
-        />
       </div>
+
+        {/*
+          El progreso pasa a ser un DATO, no una linea de 6 px.
+          Era una barra fina bajo la cabecera y un "31/56" en texto de 12 px
+          perdido junto al nombre de la persona. En una tarea de 56 repeticiones,
+          cuanto llevas es lo mas motivador que hay y lo primero que se mira al
+          levantar la vista: aqui va grande, con el porcentaje y la barra
+          amarilla de marca a ancho completo.
+        */}
+        <div className="mt-3">
+          <div className="mb-1.5 flex items-baseline justify-between">
+            <p className="text-2xl font-bold leading-none tabular-nums">
+              {contados}
+              <span className="text-base font-medium text-sobre-azul"> / {total}</span>
+              <span className="ml-2 text-sm font-normal text-sobre-azul">artículos</span>
+            </p>
+            <p className="text-sm font-semibold tabular-nums text-alerta">
+              {total ? Math.round((contados / total) * 100) : 0}%
+            </p>
+          </div>
+          <div
+            className="h-2 overflow-hidden rounded-full bg-white/20"
+            role="progressbar"
+            aria-valuenow={contados}
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-label="Artículos contados"
+          >
+            <div
+              className="h-full rounded-full bg-alerta transition-all"
+              style={{ width: `${total ? (contados / total) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      </header>
 
       {/* ── Lista de articulos (sin cantidades del sistema) ── */}
       {/* min-h-0 es obligatorio: sin el, un hijo flex se niega a encogerse por
           debajo de su contenido y empuja la zona de captura fuera del marco. */}
-      <section className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+      <section className="lista-articulos min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div className="sin-barra mb-3 flex gap-2 overflow-x-auto pb-1">
           {familias.map((f) => (
             <button
               key={f}
               onClick={() => setFamilia(f)}
-              className={`shrink-0 rounded-full border px-3 py-2 text-xs ${
-                familia === f ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
+              className={`toque-menor shrink-0 rounded-full border px-4 text-sm transition-colors ${
+                familia === f
+                  ? 'border-acento bg-acento/15 font-medium text-acento'
+                  : 'border-borde-fuerte text-tenue'
               }`}
             >
               {f === 'TODAS' ? 'Todas' : f.replaceAll('_', ' ').toLowerCase()}
@@ -749,40 +830,81 @@ export default function Contar() {
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar artículo…"
-          className="toque mb-3 w-full rounded-xl border border-borde bg-superficie px-4 text-base outline-none focus:border-acento"
+          className="toque mb-3 w-full rounded-xl border border-borde-fuerte bg-superficie px-4 text-base outline-none focus:border-acento focus:ring-2 focus:ring-acento/30"
         />
 
-        <ul className="grid gap-2 pb-4">
+        {/*
+          `grid-cols-1` no es decorativo: sin el, la pista implicita del grid se
+          dimensiona a `max-content`. Como `truncate` implica
+          `white-space: nowrap`, el nombre mas largo del catalogo estiraba la
+          columna a 418 px dentro de un contenedor de 358 — el `truncate` no
+          llegaba a actuar nunca y la columna derecha, la de la cantidad ya
+          contada, quedaba 44 px fuera de la pantalla del telefono.
+          `grid-cols-1` la fija en `minmax(0, 1fr)` y ahi si recorta.
+        */}
+        <ul className="grid grid-cols-1 gap-2 pb-4">
           {visibles.slice(0, 120).map((a) => {
             const contado = contadosPorArticulo.get(a.id);
             const esActivo = activo?.id === a.id;
+            /*
+             * Estado por FRANJA de color, no por un numero diminuto.
+             *
+             * Antes contado y pendiente se distinguian por un `12` frente a un
+             * `—` a la derecha, con el mismo borde y casi el mismo fondo: en una
+             * lista de 56 filas no se ve de un golpe cuanto queda. La franja de
+             * 4 px se lee sin leer, que es lo que hace falta recorriendo un
+             * estante.
+             *
+             * `ajeno` no es decoracion: significa que otra persona ya conto ese
+             * articulo y la captura quedara en conflicto para que el lider
+             * decida. Avisarlo ANTES de teclear ahorra el recuento.
+             */
+            const ajeno =
+              contado !== undefined &&
+              capturas.some(
+                (c) => c.articuloId === a.id && c.usuarioNombre !== usuario?.nombre,
+              );
+            const franja = esActivo
+              ? 'before:bg-acento'
+              : ajeno
+                ? 'before:bg-alerta'
+                : contado !== undefined
+                  ? 'before:bg-[var(--teal)]'
+                  : 'before:bg-borde';
             return (
               <li key={a.id}>
                 <button
                   onClick={() => elegirArticulo(a)}
-                  className={`toque flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left ${
-                    esActivo
-                      ? 'border-acento bg-acento/10'
-                      : contado !== undefined
-                        ? 'border-borde bg-superficie/60'
-                        : 'border-borde bg-superficie'
+                  aria-current={esActivo || undefined}
+                  className={`toque relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-xl bg-superficie py-3 pl-5 pr-4 text-left shadow-sm transition-shadow before:absolute before:inset-y-0 before:left-0 before:w-[5px] active:shadow-none ${franja} ${
+                    esActivo ? 'ring-2 ring-acento' : ''
                   }`}
                 >
-                  <span className="min-w-0 pr-3">
-                    <span className="block truncate text-[15px]">{a.nombre.trim()}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[15px] font-medium">
+                      {a.nombre.trim()}
+                    </span>
                     <span className="text-xs text-tenue">
-                      {ETIQUETA_UNIDAD[a.unidad as Unidad].plural}
+                      {ajeno ? 'contado por otra persona' : ETIQUETA_UNIDAD[a.unidad as Unidad].plural}
                     </span>
                   </span>
-                  <span className="shrink-0 text-right">
-                    {contado !== undefined ? (
-                      <span className="font-semibold text-acento">
-                        {contado.toLocaleString('es-CO')}
-                      </span>
-                    ) : (
-                      <span className="text-tenue">—</span>
-                    )}
-                  </span>
+                  {/* La cantidad en ficha, no en texto suelto: es el dato que se
+                      busca al repasar lo ya contado. */}
+                  {contado !== undefined ? (
+                    <span
+                      className={`shrink-0 rounded-lg px-2.5 py-1 text-sm font-bold tabular-nums ${
+                        ajeno
+                          ? 'bg-alerta/25 text-alerta-texto'
+                          : 'bg-[var(--teal)]/15 text-[var(--teal)]'
+                      }`}
+                    >
+                      {contado.toLocaleString('es-CO')}
+                    </span>
+                  ) : (
+                    <span aria-hidden className="shrink-0 text-lg text-tenue">
+                      →
+                    </span>
+                  )}
                 </button>
               </li>
             );
@@ -791,9 +913,9 @@ export default function Contar() {
       </section>
 
       {/* ── Zona de captura, siempre en la mitad inferior ── */}
-      <section className="margen-inferior-seguro shrink-0 border-t border-borde bg-superficie/70 px-4 pt-3 backdrop-blur">
+      <section className="zona-captura margen-inferior-seguro shrink-0 border-t border-borde bg-superficie/70 px-4 pt-3 backdrop-blur">
         {avisoVoz && (
-          <p className="mb-2 rounded-lg bg-alerta/15 px-3 py-2 text-sm text-alerta">{avisoVoz}</p>
+          <p className="mb-2 rounded-lg bg-alerta/15 px-3 py-2 text-sm text-alerta-texto">{avisoVoz}</p>
         )}
 
         {candidatos.length > 0 && (
@@ -804,7 +926,7 @@ export default function Contar() {
                 <button
                   key={c.articulo.id}
                   onClick={() => elegirArticulo(c.articulo as ArticuloLocal, c.score)}
-                  className="rounded-xl border border-borde bg-superficie-alta p-3 text-left text-sm"
+                  className="rounded-xl border border-borde-fuerte bg-superficie p-3 text-left text-sm transition-colors active:border-acento active:bg-acento/10"
                   style={{ minHeight: 76 }}
                 >
                   {/* Se resalta lo que DIFERENCIA a cada candidato: entre ocho
@@ -821,32 +943,18 @@ export default function Contar() {
           </div>
         )}
 
-        {/* Conteo o baja. Se mantiene entre artículos: quien va dando de baja
-            un lote vencido registra varios seguidos sin volver a cambiar. */}
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          {(['CONTEO', 'MERMA'] as TipoCaptura[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => {
-                setTipo(t);
-                if (t === 'CONTEO') limpiarMerma();
-              }}
-              className={`rounded-xl border py-2 text-sm font-medium ${
-                tipo === t
-                  ? t === 'MERMA'
-                    ? 'border-alerta bg-alerta/15 text-alerta'
-                    : 'border-acento bg-acento/15 text-acento'
-                  : 'border-borde text-tenue'
-              }`}
-            >
-              {t === 'CONTEO' ? 'Contar existencias' : 'Registrar merma'}
-            </button>
-          ))}
-        </div>
-
         {activo ? (
           <>
-            <div className="mb-3 flex items-end justify-between gap-3">
+            {/*
+              La cantidad ocupa el espacio que libera la lista, como el visor de
+              una calculadora.
+              Al separar elegir de capturar quedaban ~660 px vacios sobre el
+              teclado, y la cantidad seguia siendo un numero pequeño en una
+              esquina. Pero "¿tecle mal el numero?" es LA pregunta de este
+              producto — el 9 que se vuelve 90 — asi que ese hueco es
+              exactamente donde debe verse, grande y sin competencia.
+            */}
+            <div className="pantalla-cantidad mb-3">
               <div className="min-w-0">
                 <p className="truncate text-lg font-medium">{activo.nombre.trim()}</p>
                 <p className="text-xs text-tenue">
@@ -858,8 +966,11 @@ export default function Contar() {
                   se cuenta en {ETIQUETA_UNIDAD[activo.unidad as Unidad].plural}
                 </p>
               </div>
-              <p className="shrink-0 text-4xl font-bold tabular-nums text-acento">
+              <p className="cifra tabular-nums font-bold text-acento">
                 {cantidad || '0'}
+                <span className="ml-2 text-base font-normal text-tenue">
+                  {ETIQUETA_UNIDAD[activo.unidad as Unidad].corta}
+                </span>
               </p>
             </div>
 
@@ -872,10 +983,10 @@ export default function Contar() {
                     <button
                       key={m}
                       onClick={() => setMotivoMerma(m)}
-                      className={`rounded-full border px-3 py-2 text-xs ${
+                      className={`toque-menor rounded-full border px-4 text-sm transition-colors ${
                         motivoMerma === m
-                          ? 'border-alerta bg-alerta/20 text-alerta'
-                          : 'border-borde text-tenue'
+                          ? 'border-alerta-texto bg-alerta/25 font-medium text-alerta-texto'
+                          : 'border-borde-fuerte text-tenue'
                       }`}
                     >
                       {m}
@@ -886,15 +997,21 @@ export default function Contar() {
                 {/* Colsubsidio no aclaró si el producto dañado se retira antes
                     del conteo. En vez de imponer una regla, se pregunta: con
                     eso el reporte calcula bien el descuadre. */}
-                <label className="mb-3 flex items-start gap-2 text-xs">
+                {/*
+                  La fila entera es el objetivo tactil, no solo la casilla de
+                  20 px: con guantes de bodega acertarle a un cuadro de 20 px es
+                  una loteria, y aqui una equivocacion descuadra el reporte
+                  (define si la merma se resta del conteo o no).
+                */}
+                <label className="toque-menor mb-3 -mx-1 flex cursor-pointer items-center gap-3 rounded-xl px-1 text-sm active:bg-alerta/10">
                   <input
                     type="checkbox"
                     checked={incluidoEnConteo}
                     onChange={(e) => setIncluidoEnConteo(e.target.checked)}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-alerta"
+                    className="h-6 w-6 shrink-0 rounded accent-alerta"
                   />
                   <span className="text-tenue">
-                    Este producto <strong className="text-white">ya lo conté</strong> como
+                    Este producto <strong className="text-texto">ya lo conté</strong> como
                     existencia (sigue en el estante)
                   </span>
                 </label>
@@ -923,7 +1040,7 @@ export default function Contar() {
                     </div>
                     <button
                       onClick={() => setFoto(null)}
-                      className="rounded-lg border border-borde px-3 py-2 text-xs"
+                      className="toque-menor rounded-lg border border-borde-fuerte px-3 text-xs"
                     >
                       Quitar
                     </button>
@@ -931,7 +1048,7 @@ export default function Contar() {
                 ) : (
                   <button
                     onClick={() => entradaFoto.current?.click()}
-                    className="toque w-full rounded-xl border border-borde text-sm"
+                    className="toque w-full rounded-xl border border-borde-fuerte text-sm transition-colors active:bg-superficie-alta"
                   >
                     Tomar foto de evidencia (opcional)
                   </button>
@@ -940,8 +1057,14 @@ export default function Contar() {
               </div>
             )}
 
+            {/*
+              Los digitos y las ACCIONES dejan de pesar lo mismo.
+              Eran doce bloques identicos: el 7 y el borrar se veian igual, y en
+              una tarea de cientos de pulsaciones eso hace fallar. Ahora los
+              digitos son la superficie elevada de siempre y C, borrar, coma y +½
+              van en un tono aparte con texto atenuado: se distinguen sin leerlos.
+            */}
             <div className="mb-2 grid grid-cols-4 gap-2">
-              {['7', '8', '9', '1', '4', '5', '6', '2', '1', '2', '3', '3'].slice(0, 0)}
               {['7', '8', '9'].map((d) => (
                 <Tecla key={d} onClick={() => setCantidad(cantidad + d)}>{d}</Tecla>
               ))}
@@ -964,37 +1087,87 @@ export default function Contar() {
               <Tecla onClick={() => setCantidad(((Number(cantidad.replace(',', '.')) || 0) + 0.5).toString().replace('.', ','))} tenue>
                 +½
               </Tecla>
-              <button
-                onClick={intentarGuardar}
-                disabled={cantidad === '' || (tipo === 'MERMA' && !motivoMerma)}
-                className={`col-span-2 rounded-xl text-lg font-semibold text-black disabled:opacity-40 ${
-                  tipo === 'MERMA' ? 'bg-alerta' : 'bg-acento'
-                }`}
-                style={{ minHeight: 64 }}
-              >
-                {tipo === 'MERMA' ? 'Registrar baja' : 'Guardar'}
-              </button>
+              <span aria-hidden className="col-span-2" />
             </div>
 
+            {/*
+              Guardar como BARRA completa al borde inferior.
+              Estaba dentro de la cuadricula ocupando dos celdas, o sea con el
+              mismo peso visual que dos teclas mas. Es la accion que cierra el
+              ciclo y se pulsa una vez por articulo: merece el ancho entero y el
+              sitio mas alcanzable de la pantalla.
+             
+              El color del texto depende del relleno, y no es cosmetico: sobre el
+              amarillo de marca va OSCURO (10.56:1) — en blanco daria 1.47:1,
+              ilegible. Sobre el azul, blanco.
+            */}
             <button
-              onClick={() => {
-                setActivo(null);
-                setCantidad('');
-              }}
-              className="w-full py-2 text-sm text-tenue"
+              onClick={intentarGuardar}
+              disabled={cantidad === '' || (tipo === 'MERMA' && !motivoMerma)}
+              className={`w-full rounded-xl text-lg font-bold tracking-wide shadow-sm transition-opacity disabled:opacity-40 ${
+                tipo === 'MERMA' ? 'bg-alerta text-texto' : 'bg-acento text-white'
+              }`}
+              style={{ minHeight: 64 }}
             >
-              Cancelar
+              {tipo === 'MERMA' ? 'Registrar baja' : 'Guardar'}
             </button>
+
+            {/*
+              Merma como accion SECUNDARIA, no como interruptor permanente.
+              Estaba arriba y siempre visible: 48 px y dos controles en cada
+              captura para lo que es la excepcion, no la norma — y ademas
+              aparecia con la lista, cuando todavia no hay articulo al que dar
+              de baja. Aqui esta donde se necesita (ya elegiste el articulo) y
+              cuesta un control en vez de dos.
+            */}
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <button
+                onClick={() => {
+                  const nuevo: TipoCaptura = tipo === 'MERMA' ? 'CONTEO' : 'MERMA';
+                  setTipo(nuevo);
+                  if (nuevo === 'CONTEO') limpiarMerma();
+                }}
+                className={`toque-menor rounded-xl px-3 text-sm font-medium transition-colors ${
+                  tipo === 'MERMA'
+                    ? 'bg-alerta/20 text-alerta-texto'
+                    : 'text-tenue active:bg-superficie-alta'
+                }`}
+              >
+                {tipo === 'MERMA' ? '← Volver a contar' : 'Registrar merma'}
+              </button>
+              <button
+                onClick={() => {
+                  setActivo(null);
+                  setCantidad('');
+                  limpiarMerma();
+                  setTipo('CONTEO');
+                }}
+                // Es la UNICA vuelta a la lista: no puede medir 36 px de alto.
+                className="toque-menor rounded-xl px-3 text-sm text-tenue transition-colors active:bg-superficie-alta"
+              >
+                Cancelar
+              </button>
+            </div>
           </>
         ) : (
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0 flex-1">
+          /*
+           * Dos filas, no una.
+           *
+           * Estaban los cuatro controles y la pista en una sola fila. Entre el
+           * microfono (104 px), "Escanear" y la casilla de continuo, a la pista
+           * le quedaban 67 px medidos en un telefono de 390: "Dicta, e…". El
+           * texto que explica como se usa la pantalla era justo el que no se
+           * podia leer. Ahora la pista tiene el ancho completo y los controles
+           * van debajo.
+           */
+          <div className="flex flex-col gap-3">
+            <div className="min-h-[2.5rem]">
               {escuchando ? (
                 <p className="text-sm font-medium text-acento">
-                  {parcial ? <span className="text-white">{parcial}…</span> : 'Escuchando… habla ahora'}
+                  {parcial ? <span className="text-texto">{parcial}…</span> : 'Escuchando… habla ahora'}
                 </p>
               ) : parcial ? (
-                <p className="text-sm text-white">{parcial}…</p>
+                <p className="text-sm text-texto">{parcial}…</p>
               ) : (
                 <>
                   {/* Confirmacion de lo guardado. Sustituye al avance
@@ -1010,64 +1183,71 @@ export default function Contar() {
                       </span>
                     </p>
                   )}
-                  <p className="truncate text-sm text-tenue">
-                    {siguienteSinContar ? (
-                      <>
-                        Dicta, escanea o toca el que sigue. Atajo:{' '}
-                        <button
-                          onClick={() => elegirArticulo(siguienteSinContar)}
-                          className="text-white underline"
-                        >
-                          {siguienteSinContar.nombre.trim()}
-                        </button>
-                      </>
-                    ) : (
-                      'Todo contado en esta vista.'
-                    )}
-                  </p>
+                  {/*
+                    Aqui NO va nada mas.
+                    Se retiraron la leyenda "Dicta, escanea o toca" y el atajo al
+                    siguiente sin contar; poner en su lugar otra frase que diga
+                    "elige, dicta o escanea" seria reponer el mismo ruido con
+                    otras palabras. Los tres caminos ya estan a la vista: la
+                    lista arriba, y Escanear y el microfono abajo.
+
+                    El alto reservado se mantiene para que la confirmacion de lo
+                    guardado aparezca sin desplazar el teclado.
+                  */}
                 </>
               )}
             </div>
 
-            {/* Dictado continuo: el micrófono se reabre solo tras cada frase
-                y lo inequívoco se guarda sin preguntar. */}
-            <label className="flex shrink-0 flex-col items-center gap-1 text-[11px] text-tenue">
-              <input
-                type="checkbox"
-                checked={continuo}
-                onChange={(e) => cambiarContinuo(e.target.checked)}
-                className="h-6 w-10 accent-acento"
-              />
-              continuo
-              {continuo && dictados > 0 && (
-                <span className="text-acento">{dictados}</span>
-              )}
-            </label>
+            {/*
+              El microfono manda; `continuo` es una OPCION suya.
+              Antes eran tres botones hermanos del mismo rango: el interruptor
+              de dictado continuo, Escanear y el microfono. Pero continuo no es
+              una accion, es un ajuste — y ajuste DEL microfono: sin voz no hace
+              nada. Ponerlo al mismo nivel hacia que compitiera con las dos
+              acciones de verdad.
+            */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setEscaneando(true)}
+                className="toque flex-1 rounded-xl border border-borde-fuerte bg-superficie px-4 text-sm font-semibold shadow-sm transition-colors active:border-acento active:bg-acento/10"
+                title="Escanear código o QR de estante"
+              >
+                Escanear
+              </button>
 
-            <button
-              onClick={() => setEscaneando(true)}
-              className="toque rounded-xl border border-borde px-4 text-sm"
-              title="Escanear código o QR de estante"
-            >
-              Escanear
-            </button>
+              {/*
+                `seguido` AL LADO del microfono, no debajo.
+                Apilado, la columna del microfono (104 px mas el interruptor)
+                superaba en altura a "Escanear" y el panel crecia 30 px. Al lado,
+                la fila mide lo que mide el microfono, y el interruptor sigue
+                leyendose como suyo por tamaño y proximidad.
+              */}
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  className="microfono bg-acento text-white shadow-sm disabled:opacity-40"
+                  data-escuchando={escuchando}
+                  // Ya NO se cancela en onPointerLeave: al sostener el boton en una
+                  // tablet el dedo se mueve unos pixeles y salia del elemento,
+                  // matando la captura a media frase.
+                  onPointerDown={alPresionarMicrofono}
+                  onPointerUp={alSoltarMicrofono}
+                  onPointerCancel={terminarEscucha}
+                  aria-label={escuchando ? 'Escuchando, toca para terminar' : 'Toca o mantén presionado para dictar'}
+                >
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                    <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Z" />
+                    <path d="M18 11a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.917V19H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.083A6 6 0 0 0 18 11Z" />
+                  </svg>
+                </button>
 
-            <button
-              className="microfono bg-acento text-black disabled:opacity-40"
-              data-escuchando={escuchando}
-              // Ya NO se cancela en onPointerLeave: al sostener el boton en una
-              // tablet el dedo se mueve unos pixeles y salia del elemento,
-              // matando la captura a media frase.
-              onPointerDown={alPresionarMicrofono}
-              onPointerUp={alSoltarMicrofono}
-              onPointerCancel={terminarEscucha}
-              aria-label={escuchando ? 'Escuchando, toca para terminar' : 'Toca o mantén presionado para dictar'}
-            >
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Z" />
-                <path d="M18 11a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.917V19H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.083A6 6 0 0 0 18 11Z" />
-              </svg>
-            </button>
+                {/*
+                  Solo si este navegador reconoce voz. Antes se mostraba igual
+                  cuando no habia soporte, o sea un control que no podia hacer
+                  nada. Con el microfono al lado y debajo de el, se lee como lo
+                  que es: como se comporta el microfono, no una tercera accion.
+                */}
+              </div>
+            </div>
           </div>
         )}
       </section>
@@ -1142,7 +1322,20 @@ function Tecla({
   tenue?: boolean;
 }) {
   return (
-    <button onClick={onClick} className={`tecla ${tenue ? 'text-tenue' : ''}`}>
+    // `tenue` ya no es solo un color de texto: cambia el MATERIAL de la tecla
+    // (sin elevacion, superficie hundida) para que accion y digito no pesen
+    // igual. Ver `.tecla-accion` en globals.css.
+    <button
+      onClick={onClick}
+      className={`tecla ${tenue ? 'tecla-accion' : ''}`}
+      // Identidad estable para el E2E: `tecla-7`, `tecla-0`… Se deriva del
+      // dígito, no de la clase CSS (que es estilo y cambia con el diseño).
+      data-testid={
+        typeof children === 'string' || typeof children === 'number'
+          ? `tecla-${children}`
+          : undefined
+      }
+    >
       {children}
     </button>
   );
@@ -1184,12 +1377,24 @@ function DialogoAnomalias({
     (a) => a.opciones?.filter((o) => o.accion === 'CORREGIR_A') ?? [],
   );
 
+  /*
+   * Usa `Hoja` en vez de repetir el modal.
+   *
+   * Antes era una copia del mismo contenedor, y por eso se quedaba fuera de las
+   * mejoras del componente: con el dialogo abierto seguian 36 controles vivos
+   * detras — el teclado numerico entero. `Hoja` aisla lo de atras con `inert`.
+   *
+   * Sin `onCerrar` A PROPOSITO: aqui hay que elegir entre volver a teclear,
+   * corregir o declarar un motivo. Descartar el aviso tocando fuera seria una
+   * salida silenciosa de la verificacion que este producto existe para forzar.
+   */
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/70 p-4 sm:items-center sm:justify-center">
-      <div className="w-full max-w-md rounded-2xl border border-alerta/60 bg-superficie p-5">
-        <p className="mb-1 text-sm font-semibold text-alerta">⚠ {principal.titulo}</p>
+    <Hoja tono="alerta" titulo={principal.titulo}>
+      <>
         <p className="mb-4 text-sm text-tenue">{principal.mensaje}</p>
 
+        {/* R8: al marcar un salto de magnitud, explica el rango habitual de la
+            bodega. Viene de main; se conserva sobre la tarjeta rediseñada. */}
         {principal.codigo === 'R8_SALTO_DE_MAGNITUD' && articulo.exp10 != null && (
           <div className="mb-4">
             <button
@@ -1216,63 +1421,68 @@ function DialogoAnomalias({
           </p>
         </div>
 
-        {anomalias.length > 1 && (
-          <ul className="mb-4 grid gap-1 text-xs text-tenue">
-            {anomalias.slice(1).map((a) => (
-              <li key={a.codigo}>· {a.mensaje}</li>
-            ))}
-          </ul>
-        )}
-
-        <div className="grid gap-2">
-          <button
-            onClick={onReteclear}
-            className="toque rounded-xl bg-acento text-base font-semibold text-black"
-          >
-            Volver a teclear
-          </button>
-
-          {correcciones.map((o) => (
-            <button
-              key={o.etiqueta}
-              onClick={() => onCorregir(o.valor!)}
-              className="toque rounded-xl border border-borde text-base"
-            >
-              {o.etiqueta}
-            </button>
-          ))}
-
-          {!hayBloqueo && (
-            <>
-              <p className="mt-2 text-xs text-tenue">Si es correcto, indica por qué:</p>
-              <div className="flex flex-wrap gap-2">
-                {MOTIVOS_CONFIRMACION.map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMotivo(m)}
-                    className={`rounded-full border px-3 py-2 text-xs ${
-                      motivo === m ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={onAceptar}
-                disabled={!motivo}
-                className="toque rounded-xl border border-borde text-base disabled:opacity-40"
-              >
-                Es correcto, guardar
-              </button>
-            </>
+          {anomalias.length > 1 && (
+            <ul className="mb-4 grid gap-1 text-xs text-tenue">
+              {anomalias.slice(1).map((a) => (
+                <li key={a.codigo}>· {a.mensaje}</li>
+              ))}
+            </ul>
           )}
+
+          <div className="grid gap-2">
+            <button
+              onClick={onReteclear}
+              className="toque rounded-xl bg-acento text-base font-semibold text-white"
+            >
+              Volver a teclear
+            </button>
+
+            {correcciones.map((o) => (
+              <button
+                key={o.etiqueta}
+                onClick={() => onCorregir(o.valor!)}
+                className="toque rounded-xl border border-borde-fuerte text-base font-medium transition-colors active:bg-superficie-alta"
+              >
+                {o.etiqueta}
+              </button>
+            ))}
+
+            {!hayBloqueo && (
+              <>
+                <p className="mt-2 text-xs text-tenue">Si es correcto, indica por qué:</p>
+                <div className="flex flex-wrap gap-2">
+                  {MOTIVOS_CONFIRMACION.map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setMotivo(m)}
+                      className={`toque-menor rounded-full border px-4 text-sm transition-colors ${
+                        motivo === m
+                          ? 'border-acento bg-acento/15 font-medium text-acento'
+                          : 'border-borde-fuerte text-tenue'
+                      }`}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={onAceptar}
+                  disabled={!motivo}
+                  className="toque rounded-xl border border-borde-fuerte text-base transition-colors active:bg-superficie-alta disabled:opacity-40"
+                >
+                  Es correcto, guardar
+                </button>
+              </>
+            )}
         </div>
-      </div>
-    </div>
+      </>
+    </Hoja>
   );
 }
 
 function Pantalla({ children }: { children: React.ReactNode }) {
-  return <main className="flex h-screen items-center justify-center px-6">{children}</main>;
+  // `alto-pantalla` y no `h-screen`: en movil `100vh` cuenta con la barra de
+  // direcciones colapsada, asi que centra respecto a una pantalla mas alta que
+  // la real y el contenido queda por debajo del centro visible.
+  return <main className="alto-pantalla flex items-center justify-center px-6">{children}</main>;
 }
