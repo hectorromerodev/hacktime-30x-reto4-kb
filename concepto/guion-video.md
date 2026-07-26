@@ -1,10 +1,33 @@
-# Guion del video · 2 minutos
+# Guion del video · 2 minutos — pitch + demo
 
-Estructura de la charla *"Gana el mejor pitch"*: **20 / 20 / 50 / 10 / 20 segundos**.
+Estructura de la charla *"Gana el mejor pitch"*: **20 / 20 / 55 / 8 / 17 segundos**.
 Nadie se presenta al principio. Un solo flujo en el demo, no diez.
 
-> **Antes de grabar, lee [la lista de comprobación](#lista-de-comprobación-antes-de-grabar).**
-> Hay dos cosas que se graban **por separado** y una que puede no funcionar en tu red.
+> Esta versión reemplaza a la anterior: incorpora el **rediseño con identidad Colsubsidio**
+> y las dos piezas que llegaron después del primer guion — **merma con evidencia
+> fotográfica** y el **panel del líder con cierre firmado**. El número de ROI y la versión
+> palabra-por-palabra corta viven en [`guion-pitch-2min-y-roi.md`](guion-pitch-2min-y-roi.md);
+> las defensas del Q&A en [`preguntas-jurado.md`](preguntas-jurado.md).
+
+---
+
+## El arsenal — qué es lo más fuerte y dónde se muestra
+
+Dos minutos no aguantan diez features. Cada win tiene **un** lugar asignado: en cámara,
+en una frase, o guardado para el README y el Q&A. Nada se pierde; nada estorba.
+
+| # | Win | Por qué es fuerte | Dónde se muestra |
+|---|-----|-------------------|------------------|
+| 1 | **El 9→90 muere en cámara sin romper el conteo ciego** | Es *el* error del brief, y la solución (`exp10`: la tablet conoce el orden de magnitud, nunca la cantidad) es la decisión de diseño que nadie más va a tener | **Cámara** (beat 1) + Q&A |
+| 2 | **Offline de verdad** | El wifi se apaga *en cámara* y se sigue contando; sync idempotente al volver. Condición dura de Colsubsidio, demostrada, no prometida | **Cámara** (beat 2) |
+| 3 | **Merma con foto = diferencias EXPLICADAS** | Colsubsidio confirmó en vivo que la merma es parte del proceso. La columna "Sin explicar" convierte el reporte de una lista de descuadres en una explicación | **Cámara** (beat 3) |
+| 4 | **Panel del líder + cierre firmado + export en su formato** | Es lo que la dueña del proceso pidió textualmente: contado contra sistema, sin descargar nada, y el archivo con sus propias columnas | **Cámara** (beat 4) |
+| 5 | **Identidad Colsubsidio, pensada para la bodega** | Base clara porque contra el sol un fondo claro se lee mejor; contrastes medidos (WCAG), controles ≥44 px. El jurado la *ve* en cada toma — no se gasta ni una palabra en decirla | **Se ve sola**, todo el video |
+| 6 | **Voz con dictado continuo** | El mic se reabre solo tras cada frase: se cuenta hablando, sin tocar | **Cámara si la red coopera** (beat 1); si no, teclado y el guion no cambia |
+| 7 | **No es maqueta** | Desplegado, 61 tests unitarios + 10 de API + 9 E2E, PWA en las tablets que ya tienen | **Una frase** en el cierre + README |
+| 8 | **Ciego garantizado por arquitectura Y por rol** | `SD` nunca viaja a la tablet, y las rutas de reporte exigen rol LIDER (fuga verificada y tapada) | Q&A (bloque 2) |
+| 9 | **Conflicto entre contadores: nunca se suma en silencio** | Dos personas cuentan lo mismo → queda en conflicto y el líder decide. Responde la pregunta 20 de Colsubsidio | Q&A + demo de finalistas |
+| 10 | **Fuzzy match 99,4 % acc@5, <1 ms, sin red ni dependencias** | Es la respuesta a "¿dónde está la IA?": la que *sí* se puede desplegar en una bodega sin señal | Q&A (bloque 3) |
 
 ---
 
@@ -12,48 +35,43 @@ Nadie se presenta al principio. Un solo flujo en el demo, no diez.
 
 **En pantalla:** nada de la app todavía. Tu cara, o una foto de una hoja de conteo en papel.
 
-> «Cada fin de mes, en las bodegas del parque Piscilago de Colsubsidio, alguien cuenta
-> producto por producto **en papel**. Ese papel viaja a otra persona, que lo digita en el
-> sistema: **dos días de digitación**. Y una tercera lo revisa.
->
-> Ahí es donde alguien cuenta nueve cajas y termina registrado noventa. Donde un tres se lee
-> como un cinco. Donde los gramos se confunden con kilos.
->
-> Ese error nadie lo ve hasta el cierre del mes.»
+> «Cada fin de mes, en Piscilago, alguien teclea a mano **mil cuatrocientos cinco** renglones
+> de inventario. Un **nueve** leído como **noventa** —y pasa— descuadra la bodega entera.
+> Cuarenta y ocho bodegas, **dos días** de redigitación al mes. Y el error nace siempre en el
+> mismo punto: cuando alguien captura lo que contó.»
 
-**Por qué así:** los "dos días" son dato de ellos, dicho en la sesión en vivo. El 9→90 es el
-ejemplo que la dueña del proceso contó dos veces. Estás repitiendo su propio dolor con sus
-palabras, no vendiendo una idea.
+**Por qué así:** los "dos días" y el 9→90 son datos de ellos, dichos en la sesión en vivo.
+Estás repitiendo su propio dolor con sus palabras, no vendiendo una idea.
 
 ---
 
 ## 0:20 – 0:40 · Qué construimos
 
-**En pantalla:** la app abierta en la lista de artículos, con el progreso a medias.
+**En pantalla:** la app abierta en la lista de artículos de la bodega, progreso a medias
+(38/56). La identidad Colsubsidio se presenta sola: no se menciona.
 
-> «Construimos una app de tablet que captura el conteo en el momento.
->
-> El contador elige el artículo **por voz, por escáner, por búsqueda o tocándolo**, escribe la
-> cantidad, y listo. Lo que se cuenta entra limpio al sistema desde la primera vez.
->
-> Con dos condiciones que nos puso Colsubsidio y que no se pueden romper: **funciona sin red**,
-> porque no todas las bodegas tienen cobertura. Y **el conteo sigue siendo ciego** — la app
-> jamás le muestra al contador cuánto espera el sistema.»
+> «Por eso construimos **Conteo · Piscilago**: la tablet captura el conteo **en el piso**.
+> El contador habla, teclea o escanea; la app **marca lo que no cuadra antes de guardar**; y
+> todo entra limpio, listo para el sistema. Con dos condiciones que no se pueden romper:
+> **funciona sin red**, y **el conteo sigue siendo ciego** — la app jamás muestra cuánto
+> espera el sistema.»
 
 **No digas:** "usamos inteligencia artificial", "un modelo de lenguaje", "sintetizamos
-histórico". Nada de eso es cierto en este producto y el jurado lo puede desmontar preguntando.
+histórico". Nada de eso es cierto y el jurado lo desmonta con una repregunta.
 
 ---
 
-## 0:40 – 1:30 · El demo
+## 0:40 – 1:35 · El demo — un solo recorrido, cuatro beats
 
-**Un solo flujo.** Este es el momento que hay que clavar.
+Este es el momento que hay que clavar. Si el tiempo se desborda, se recorta el beat 3
+y luego el 4 — **nunca** el 1.
 
-### 1 · El error del brief, muriendo en vivo *(≈20 s)*
+### Beat 1 · El error del brief, muriendo en vivo *(≈20 s)*
 
-**Toca:** `ACEITE` → teclea `900` → **Guardar**
+**Con red todavía.** Si la voz coopera: toca el micrófono y di *«aceite… novecientos»*.
+Si no: toca `ACEITE` y teclea `900`. → **Guardar**
 
-Aparece:
+Aparece el diálogo de banda amarilla:
 
 ```
 ⚠ Verificación de cantidad
@@ -65,115 +83,114 @@ Cuenta otra vez para confirmar.
 Si es correcto, indica por qué: …
 ```
 
-> «Capturé novecientos. La app me detiene **antes de guardar** y me pregunta si eran noventa.
->
-> Y fíjense en esto: **el sistema dice treinta con cincuenta y nueve litros, y ese número no
-> apareció en ningún momento.** La app sabe en qué escala se mueve el artículo, no cuánto hay.
-> El conteo sigue siendo ciego.»
+> «Capturé novecientos. La app me detiene **antes de guardar**: novecientos se sale de la
+> escala de este artículo. Y fíjense: **el sistema tiene treinta con cincuenta y nueve
+> litros, y ese número no apareció en ningún momento.** La app conoce la escala, no la
+> cantidad. El conteo sigue ciego. Solo pregunta: ¿no eran noventa?»
 
 **Toca:** `¿Eran 90?` → **Guardar**
 
-> «Y si insisto en que son novecientos, tengo que decir por qué. Ese motivo queda registrado
-> para el auditor.»
+> «Noventa. **Un error de miles de pesos, muerto en dos segundos.** Y si insisto en
+> novecientos, tengo que decir por qué — y ese motivo queda para el auditor.»
 
-### 2 · Sin red *(≈20 s)*
+### Beat 2 · Sin red *(≈12 s)*
 
-**Antes:** activa el modo avión, o apaga el wifi.
+**Activa el modo avión** (en cámara, que se vea el gesto).
 
-**Toca:** cuenta dos o tres artículos seguidos.
+**Toca:** cuenta `AGUA 280 ML` y `AGUA BOTELLA` con el teclado.
 
-> «Ahora estoy en modo avión. Sigo contando exactamente igual: se guarda al instante, sin
-> esperar a nadie.»
+> «Modo avión. Sigo contando igual: se guarda al instante. La cabecera lleva la cuenta de lo
+> que está por enviar.»
 
-**Señala la cabecera:** `Sin red · 3 por enviar`
+**Señala la cabecera:** `Sin red · 2 por enviar` → **reactiva la red**, espera el cero.
 
-**Vuelve a activar la red.** Espera a que el contador baje a cero.
+> «Al volver la señal, sube solo — y reenviar el mismo lote no duplica nada.»
 
-> «Y al recuperar señal, sube solo. Reenviar el mismo lote no duplica nada, porque cada
-> captura lleva su propia llave generada en la tablet.»
+### Beat 3 · Merma con evidencia *(≈10 s)*
 
-### 3 · Lo que recibe el líder de costos *(≈10 s)*
+**Toca:** registrar merma en un artículo → motivo (p. ej. rotura) → **adjunta la foto**.
 
-**Toca:** entra como **Bibiana Torres** → **Cierre**
+> «Dos botellas rotas: quedan como **merma, con su foto**. El descuadre deja de ser un
+> misterio: es una diferencia **explicada, con evidencia**.»
 
-> «Y esto es lo que la líder de costos pidió textualmente: **cuánto conté contra cuánto dice el
-> sistema.** Con el archivo listo para cargar, con las mismas columnas de su propio formato.»
+### Beat 4 · Lo que ve la líder de costos *(≈13 s)*
 
-**Toca:** *Descargar Excel* — que se vea el archivo bajando.
+**Cambia de sesión:** entra como **Bibiana Torres / 9999** → panel del líder →
+pestaña **Diferencias** (que se vea la columna **Sin explicar** y la merma) →
+**Cerrar conteo** → **Descargar Excel** (que se vea el archivo bajando).
+
+> «Y la líder de costos lo revisa **sin descargar nada**: contado contra sistema, cuánto
+> queda sin explicar, la merma con sus fotos. Cierra la auditoría — queda **firmada con su
+> nombre y su hora** — y el archivo sale con las **columnas de su propio formato**.»
 
 ---
 
-## 1:30 – 1:40 · Por qué importa
+## 1:35 – 1:43 · Por qué importa
 
 **En pantalla:** tu cara, o el reporte de diferencias.
 
-> «Todo el reconocimiento corre **dentro de la tablet**: ningún dato de inventario sale hacia
-> un modelo de terceros. Por eso funciona sin red.
->
-> Y es *human-in-the-loop*: la app marca, **la persona decide**, y cada vez que alguien ignora
-> una alerta queda registrado por qué — para que el auditor pueda ajustar el umbral con datos.»
+> «Todo corre **dentro de la tablet**: ningún dato de inventario sale a un modelo de
+> terceros. Por eso funciona sin red. Un agente de voz en la nube **no puede correr en esas
+> bodegas** — esta es la IA que **sí se puede desplegar aquí**. Y es *human-in-the-loop*:
+> la app marca, **la persona decide**, y cada excepción queda registrada con su motivo.»
 
 ---
 
-## 1:40 – 2:00 · Equipo y siguiente paso
+## 1:43 – 2:00 · Equipo y siguiente paso
 
-> «Somos [nombres y roles].
->
-> Lo que sigue no es una promesa: es un piloto en Piscilago **en el próximo cierre de mes**. Si
-> funciona ahí, son las mismas 48 bodegas del parque, y después los hoteles.
->
-> Una cosa que decimos de frente: **la voz necesita red.** Por eso nunca es el único camino —
-> teclado, búsqueda y escáner funcionan sin señal. Preferimos decirlo a que se descubra en una
-> bodega sin cobertura.»
+> «Somos **Hector Romero, Ayrton Santos, Gerardo Martinez y Rodrigo Sauceda**. Esto **no es
+> una maqueta**: está desplegado, con sesenta y un tests, y corre en las tablets que
+> **ya tienen**, con el catálogo que **ya existe**. Siguiente paso: un **piloto en Piscilago
+> el próximo cierre de mes**. Y una cosa de frente: **la voz necesita red** — por eso nunca
+> es el único camino: teclado, búsqueda y escáner funcionan sin señal. Si funciona en
+> Piscilago, funciona en **cada hotel y cada parque** de Colsubsidio.»
 
-**Por qué cerrar con una limitación:** en la charla de *human in the loop* lo dijeron literal —
-declarar los límites conocidos «eso es ganador». Un jurado que conoce el proceso lo lee como
-solidez, no como debilidad.
+**Por qué cerrar con una limitación:** en la charla de *human in the loop* lo dijeron
+literal — declarar los límites conocidos «eso es ganador».
 
 ---
 
 ## Lista de comprobación antes de grabar
 
-**Prepara los datos** (deja la bodega a medio contar):
+**Prepara los datos** (idempotente; deja la bodega en 38/56 con anomalía confirmada,
+conflicto entre dos contadores y métodos mezclados en TRAZABILIDAD):
 
 ```bash
 pnpm --filter api demo
 ```
 
-O usa la que ya está lista en producción:
-
-```
-https://conteo-inventarios.vercel.app/contar/cms0u81zq0001yfa8a41bslx6
-```
-
-- Entra como **Ana Gómez / 1111**. La bodega es **Kiosco Piscigiros AyB**: 56 artículos, 31 ya
-  contados, así que la barra de progreso se ve a medias en vez de en cero.
-- **ACEITE, AGUA 280 ML y AGUA BOTELLA están sin contar** a propósito, para contarlos en cámara.
+- Entra como **Ana Gómez / 1111** y elige **Kiosco Piscigiros AyB** desde la lista de
+  bodegas — **no** uses una URL de conteo guardada: el seed borra y recrea el conteo, así
+  que el ID cambia en cada siembra.
+- **ACEITE, AGUA 280 ML y AGUA BOTELLA quedan sin contar** a propósito: son los del guion.
+- ACEITE tiene stock **30,59 L** → teclear `900` dispara la verificación, seguro.
 - **Graba en Chrome.** En Safari el reconocimiento de voz falla.
-- **Fuerza la recarga** (⌘⇧R) o usa pestaña privada, para que el service worker no te sirva una
-  versión vieja.
+- **Fuerza la recarga** (⌘⇧R) o usa pestaña privada: el service worker puede servirte una
+  versión vieja — y este video debe mostrar el **rediseño**, no la paleta anterior.
+- **Encuadra como teléfono/tablet.** El rediseño es móvil primero; grabar en ventana de
+  escritorio ancha desperdicia justo el trabajo que lo hace verse real. DevTools → modo
+  dispositivo (Pixel 5 o iPad), o graba desde la tablet misma.
 - Cierra pestañas y notificaciones. Sube el brillo.
 
 **Dos tomas separadas, no una:**
 
 | Toma | Qué | Por qué |
 |---|---|---|
-| A | Anomalía + cierre + Excel | Necesita red |
-| B | Modo avión | Necesita que NO haya red |
+| A | Voz + anomalía + merma + panel del líder + cierre + Excel | Necesita red |
+| B | Modo avión (beat 2) | Necesita que NO haya red |
 
-No intentes mostrar voz durante el segmento sin red: **no va a funcionar**, y no por un fallo
-nuestro — el navegador manda el audio a servidores externos.
+No intentes voz durante el segmento sin red: **no va a funcionar** — el navegador manda el
+audio a servidores externos. Primero la voz con wifi, después el modo avión.
 
-**La voz es opcional en este video.** Si en tu red funciona, mete una frase entre el punto 1 y
-el 2: *«cinco kilos de harina»* y que se vea la tarjeta. Si no funciona, **no la fuerces**: el
-demo se sostiene perfectamente sin ella y el guion ya explica por qué no es el único camino.
+**La voz es opcional.** Si en tu red funciona, el beat 1 se hace hablando y es más fuerte.
+Si no, se teclea y el guion no cambia una palabra. La merma se registra tocando (el flujo
+con foto está probado); no dependas de un comando de voz para ella.
 
 **Graba un MP4 de respaldo** aunque vayas a mostrar la URL en vivo. Lo recomendaron
 explícitamente en la charla: *"graben el backup por si falla el wifi"*.
 
-**Ensaya con cronómetro.** Dos minutos se pasan muy rápido, y el demo de 50 segundos es lo
-primero que se desborda. Si te pasas, recorta del punto 3 (el cierre del líder), nunca del
-punto 1.
+**Ensaya con cronómetro.** El demo de 55 segundos es lo primero que se desborda. Si te
+pasas, recorta el beat 3, luego el 4 — nunca el 1.
 
 ---
 
@@ -186,6 +203,6 @@ Cuatro frases que estuvieron en borradores y que **son falsas**:
 | *"sintetizamos histórico"* / *"5× el promedio de ayer"* | No hay histórico. El archivo es un corte único |
 | *"un LLM respalda el emparejamiento"* | Es TypeScript sin dependencias, en el dispositivo |
 | *"el contador dice 9 y la app corrige a 90"* | Va **al revés**: la app marca el **900** |
-| *"el auditor firma en la app"* | Esa pantalla no existe |
+| *"el auditor firma en la app"* | El **líder** cierra y firma; "auditor" es otro rol |
 
 Para las preguntas del jurado: [`preguntas-jurado.md`](preguntas-jurado.md).
