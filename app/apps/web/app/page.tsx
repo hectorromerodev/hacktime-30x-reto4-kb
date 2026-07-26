@@ -253,23 +253,22 @@ export default function Inicio() {
         si hay que desplazar para ver una bodega, tambien hay que poder filtrar
         sin volver al principio.
       */}
-      {/* Sin margen negativo: `-mx-1` sacaba el contenedor 2 px por cada lado y
-          desbordaba el panel. No hace falta tapar los margenes laterales — las
-          filas no tienen fondo propio, ahi solo hay azul. */}
-      <div className="sticky top-0 z-10 mb-4 bg-acento pb-2 pt-1">
+      {/* Se queda pegado arriba al desplazar, sobre el fondo hueso para que las
+          tarjetas no se cuelen por detras del buscador. */}
+      <div className="sticky top-0 z-10 mb-4 bg-fondo pb-2 pt-1">
         <input
           value={filtro}
           onChange={(e) => setFiltro(e.target.value)}
           placeholder="Buscar bodega…"
           aria-label="Buscar bodega"
-          className="toque w-full rounded-xl border border-white/30 bg-white/10 px-4 text-base text-white placeholder:text-sobre-azul outline-none focus:border-alerta focus:bg-white/15"
+          className="toque w-full rounded-xl border border-borde-fuerte bg-superficie px-4 text-base text-texto placeholder:text-tenue outline-none focus:border-acento focus:ring-2 focus:ring-acento/30"
         />
       </div>
 
       {error && <Aviso>{error}</Aviso>}
 
       {grupos.length === 0 ? (
-        <p className="rounded-xl bg-white/10 px-4 py-6 text-center text-sm text-sobre-azul">
+        <p className="rounded-xl border border-borde bg-superficie px-4 py-6 text-center text-sm text-tenue">
           Ninguna bodega coincide con «{filtro}».
         </p>
       ) : (
@@ -281,14 +280,15 @@ export default function Inicio() {
               agrupar por sitio deja la pantalla organizada como el recorrido
               de la persona: se va A un sitio, y alli hay una o dos bodegas.
             */}
-            <h3 className="mb-1 flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-sobre-azul">
+            <h3 className="mb-2 flex items-baseline gap-2 text-xs font-semibold uppercase tracking-wide text-tenue">
               {g.sitio}
-              <span className="font-normal text-sobre-azul">· {g.bodegas.length}</span>
+              <span className="font-normal text-tenue">· {g.bodegas.length}</span>
             </h3>
-            <Lista>
+            <Lista tono="claro">
               {g.bodegas.map((b) => (
                 <Fila
                   key={b.id}
+                  tono="claro"
                   onClick={() => abrirConteo(b)}
                   desactivado={abriendo !== null}
                   titulo={b.titulo}
@@ -303,11 +303,11 @@ export default function Inicio() {
       )}
 
       {MOSTRAR_BODEGAS_SIN_INVENTARIO && sinInventario.length > 0 && (
-        <details className="mt-5 border-t border-white/15 pt-3">
-          <summary className="toque-menor flex cursor-pointer items-center text-sm text-sobre-azul">
+        <details className="mt-5 border-t border-borde pt-3">
+          <summary className="toque-menor flex cursor-pointer items-center text-sm text-tenue">
             Otras {sinInventario.length} bodegas del parque (sin inventario en el archivo)
           </summary>
-          <ul className="mt-2 grid grid-cols-1 gap-1 text-sm text-sobre-azul">
+          <ul className="mt-2 grid grid-cols-1 gap-1 text-sm text-tenue">
             {sinInventario.map((b) => (
               <li key={b.id} className="truncate">
                 · {b.nombre}
@@ -408,8 +408,8 @@ function MarcoTrabajo({
   }
 
   return (
-    <main className="alto-pantalla flex flex-col overflow-hidden bg-acento text-white">
-      <header className="flex shrink-0 items-center gap-3 border-b-[3px] border-b-alerta px-4 py-2">
+    <main className="alto-pantalla flex flex-col overflow-hidden bg-fondo text-texto">
+      <header className="flex shrink-0 items-center gap-3 border-b-[3px] border-b-alerta bg-acento px-4 py-2 text-white">
         <span
           aria-hidden
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-xs font-bold"
@@ -468,9 +468,22 @@ function Titulo({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-4 text-lg font-semibold">{children}</h2>;
 }
 
-/** Sin tarjetas: las filas se separan con una linea, no con cajas. */
-function Lista({ children }: { children: React.ReactNode }) {
-  return <ul className="grid grid-cols-1">{children}</ul>;
+/**
+ * Lista de filas.
+ *
+ * `azul` (por defecto): sobre el panel azul de entrada, las filas se separan
+ * con una linea, no con cajas. `claro`: sobre el fondo hueso (bodegas), cada
+ * fila es una tarjeta blanca con aire entre ellas, igual que la pantalla de
+ * conteo y la del lider.
+ */
+function Lista({
+  children,
+  tono = 'azul',
+}: {
+  children: React.ReactNode;
+  tono?: 'azul' | 'claro';
+}) {
+  return <ul className={`grid grid-cols-1 ${tono === 'claro' ? 'gap-2' : ''}`}>{children}</ul>;
 }
 
 /**
@@ -490,6 +503,7 @@ function Fila({
   desactivado,
   destacado,
   distintivo,
+  tono = 'azul',
 }: {
   onClick: () => void;
   inicial?: string;
@@ -501,13 +515,24 @@ function Fila({
   destacado?: boolean;
   /** Etiqueta corta junto al titulo: el tipo de bodega. */
   distintivo?: string | null;
+  /**
+   * `azul` (por defecto): fila sin caja sobre el panel azul de entrada; el
+   * limite lo dan 64 px de alto y el realce al pulsar. `claro`: tarjeta blanca
+   * sobre el fondo hueso, con borde y sombra propios, como el resto de la app.
+   */
+  tono?: 'azul' | 'claro';
 }) {
+  const claro = tono === 'claro';
   return (
-    <li className="border-b border-white/15 last:border-0">
+    <li className={claro ? '' : 'border-b border-white/15 last:border-0'}>
       <button
         onClick={onClick}
         disabled={desactivado}
-        className="flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left transition-colors active:bg-white/15 disabled:opacity-50"
+        className={`flex w-full items-center gap-3 rounded-xl py-3 text-left transition-colors disabled:opacity-50 ${
+          claro
+            ? 'border border-borde bg-superficie px-4 shadow-sm active:border-acento active:bg-acento/10'
+            : 'px-2 active:bg-white/15'
+        }`}
         style={{ minHeight: 64 }}
       >
         {inicial && (
@@ -530,7 +555,11 @@ function Fila({
               forzarla a mayusculas la escribe mal, "AYB".
             */}
             {distintivo && (
-              <span className="shrink-0 rounded-md bg-white/15 px-1.5 py-0.5 text-[11px] font-semibold tracking-wide text-white">
+              <span
+                className={`shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold tracking-wide ${
+                  claro ? 'bg-superficie-alta text-tenue' : 'bg-white/15 text-white'
+                }`}
+              >
                 {distintivo}
               </span>
             )}
@@ -545,13 +574,17 @@ function Fila({
           */}
           <span
             className={`block truncate text-xs ${
-              destacado ? 'font-semibold text-alerta' : 'text-sobre-azul'
+              destacado
+                ? 'font-semibold text-alerta'
+                : claro
+                  ? 'text-tenue'
+                  : 'text-sobre-azul'
             }`}
           >
             {detalle}
           </span>
         </span>
-        <span aria-hidden className="shrink-0 text-lg text-sobre-azul">
+        <span aria-hidden className={`shrink-0 text-lg ${claro ? 'text-tenue' : 'text-sobre-azul'}`}>
           {flecha}
         </span>
       </button>
