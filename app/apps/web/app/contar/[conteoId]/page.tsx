@@ -692,7 +692,7 @@ export default function Contar() {
 
   return (
     <main
-      className="alto-pantalla flex flex-col overflow-hidden"
+      className="alto-pantalla mx-auto flex max-w-5xl flex-col overflow-hidden"
       /*
        * Que panel esta abierto. En pantalla corta la lista se oculta, y el
        * umbral depende del panel porque conteo mide 469 px y merma 739. La
@@ -809,7 +809,7 @@ export default function Contar() {
       {/* min-h-0 es obligatorio: sin el, un hijo flex se niega a encogerse por
           debajo de su contenido y empuja la zona de captura fuera del marco. */}
       <section className="lista-articulos min-h-0 flex-1 overflow-y-auto px-4 py-3">
-        <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+        <div className="sin-barra mb-3 flex gap-2 overflow-x-auto pb-1">
           {familias.map((f) => (
             <button
               key={f}

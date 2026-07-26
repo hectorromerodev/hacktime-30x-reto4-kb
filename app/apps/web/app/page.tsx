@@ -350,7 +350,7 @@ function iniciales(nombre: string) {
  */
 function Marco({ children }: { children: React.ReactNode }) {
   return (
-    <main className="alto-pantalla flex flex-col overflow-hidden bg-fondo">
+    <main className="alto-pantalla mx-auto flex max-w-5xl flex-col overflow-hidden bg-fondo">
       <header className="marca-entrada shrink-0 px-5 pb-6 pt-10 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -409,7 +409,7 @@ function MarcoTrabajo({
   }
 
   return (
-    <main className="alto-pantalla flex flex-col overflow-hidden bg-fondo text-texto">
+    <main className="alto-pantalla mx-auto flex max-w-5xl flex-col overflow-hidden bg-fondo text-texto">
       <header className="flex shrink-0 items-center gap-3 border-b-[3px] border-b-alerta bg-acento px-4 py-2 text-white">
         <span
           aria-hidden

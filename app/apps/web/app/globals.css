@@ -321,6 +321,20 @@ main[data-panel='merma'] .pantalla-cantidad .cifra {
 }
 
 /*
+ * Fila que se desplaza en horizontal (los filtros de familia) sin pintar la
+ * barra. En el telefono se arrastra con el dedo y la barra nunca aparece; en
+ * escritorio, con raton, aparecia una barra gris bajo los chips que no aporta
+ * nada. El desplazamiento sigue funcionando (rueda, arrastre, teclado); solo
+ * se oculta la barra.
+ */
+.sin-barra {
+  scrollbar-width: none; /* Firefox */
+}
+.sin-barra::-webkit-scrollbar {
+  display: none; /* WebKit/Blink */
+}
+
+/*
  * PANTALLA CORTA (iPhone SE y parecidos, 667 px de alto).
  *
  * En el paso del PIN el contenido pedia 586 px dentro de un panel de 460:
