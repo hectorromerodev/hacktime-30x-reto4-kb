@@ -90,6 +90,12 @@ export default function Etiquetas() {
           <p className="text-sm text-neutral-600">
             {articulos.length} etiquetas, en el orden físico del almacén.
           </p>
+          <p className="mt-1 text-xs text-neutral-500">
+            El QR lleva el <strong>número de artículo</strong> cuando existe (
+            {articulos.filter((a) => a.nrArticulo).length} de {articulos.length}); el resto
+            lleva su identificador interno, que es lo único que los distingue. Debajo de cada
+            QR se imprime lo mismo que codifica, para poder verificarlo sin escanear.
+          </p>
         </div>
         <button
           // `window.print()` es sincrono y bloquea el hilo mientras el
@@ -114,12 +120,19 @@ export default function Etiquetas() {
               <img src={qrs.get(a.id)} alt="" width={76} height={76} className="shrink-0" />
             )}
             <div className="min-w-0 text-[11px] leading-tight">
-              {/* El número va primero y grande: es lo que se coteja contra el
-                  sistema, y permite verificar la etiqueta sin escanearla. */}
+              {/* Se imprime EXACTAMENTE lo que va dentro del QR, para poder
+                  cotejar la etiqueta sin escanearla. Con número, va grande
+                  porque es lo que se compara contra el sistema. Sin número
+                  —21 de 56 en esta bodega— va el identificador, que es lo
+                  único que distingue a ese artículo: ilegible de leer, pero
+                  imprimir "sin número" dejaba la etiqueta sin forma de
+                  verificarse. */}
               {a.nrArticulo ? (
                 <p className="font-mono text-[15px] font-bold leading-none">{a.nrArticulo}</p>
               ) : (
-                <p className="text-[10px] font-medium text-neutral-500">sin número</p>
+                <p className="break-all font-mono text-[8px] leading-tight text-neutral-500">
+                  {contenidoQR(a)}
+                </p>
               )}
               <p className="mt-0.5 font-semibold">{a.nombre.trim()}</p>
               <p className="text-neutral-600">{ETIQUETA_UNIDAD[a.unidad as Unidad].plural}</p>
