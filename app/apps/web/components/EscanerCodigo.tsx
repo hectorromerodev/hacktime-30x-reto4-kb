@@ -300,8 +300,13 @@ export function EscanerCodigo({
 
   return (
     <div className="alto-pantalla fixed inset-0 z-50 flex flex-col bg-black">
+      {/*
+        Toda la cabecera vive sobre negro (el video manda). Por eso el texto va
+        en blanco: los tonos `texto`/`tenue` son oscuros — pensados para el
+        fondo claro del resto de la app — y sobre negro desaparecen.
+      */}
       <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
-        <p className="min-w-0 text-sm text-tenue">
+        <p className="min-w-0 text-sm text-white/80">
           Apunta al código dentro del recuadro
           {usandoRespaldo && (
             <span className="block text-xs">lector compatible · puede tardar un poco más</span>
@@ -309,17 +314,17 @@ export function EscanerCodigo({
         </p>
         <button
           onClick={onCerrar}
-          className="toque shrink-0 rounded-xl border border-borde px-5 text-sm font-medium"
+          className="toque shrink-0 rounded-xl border border-white/40 px-5 text-sm font-medium text-white"
         >
           Salir
         </button>
       </div>
 
       {/* Modo automático: escanear uno tras otro sin confirmar cada uno. */}
-      <label className="flex shrink-0 items-center justify-between gap-3 border-b border-borde/50 px-4 pb-3">
-        <span className="text-sm">
+      <label className="flex shrink-0 items-center justify-between gap-3 border-b border-white/15 px-4 pb-3">
+        <span className="text-sm text-white">
           Escaneo automático
-          <span className="block text-xs text-tenue">
+          <span className="block text-xs text-white/60">
             {automatico
               ? 'toma el artículo sin preguntar — más rápido, sin red de seguridad'
               : 'pide confirmar cada código antes de contarlo'}
@@ -373,7 +378,10 @@ export function EscanerCodigo({
       {porConfirmar && (
         <div className="border-t border-acento/50 bg-superficie px-5 py-4">
           <p className="mb-1 font-mono text-xs text-tenue">
-            código leído: <span className="text-white">{porConfirmar.codigo}</span>
+            {/* El panel de confirmación es superficie CLARA: el código va en
+                texto oscuro. Antes era `text-white` — blanco sobre blanco, el
+                dato que hay que cotejar quedaba invisible. */}
+            código leído: <span className="font-semibold text-texto">{porConfirmar.codigo}</span>
           </p>
           <p className="text-xl font-semibold">{porConfirmar.articulo.nombre.trim()}</p>
           <p className="mb-4 text-sm text-tenue">
@@ -475,7 +483,7 @@ export function EscanerCodigo({
 
       {error && <p className="px-5 py-4 text-sm text-alerta">{error}</p>}
       {!error && !porConfirmar && ultimo && (
-        <p className="px-5 py-3 text-xs text-tenue">
+        <p className="px-5 py-3 text-xs text-white/70">
           Código leído sin artículo asociado:{' '}
           <span className="font-mono text-white">{ultimo}</span>
         </p>
