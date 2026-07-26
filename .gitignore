@@ -1,3 +1,11 @@
+.DS_Store
 lives/transcripts/*.m4a
 lives/transcripts/*.mp3
 lives/transcripts/*.ytdl
+
+# NUNCA commitear credenciales — este repo es PUBLICO por reglas del hackathon.
+# Se cubre tambien `env` sin punto: el .gitignore de app/ no alcanza la raiz.
+env
+.env
+.env.*
+!.env.example

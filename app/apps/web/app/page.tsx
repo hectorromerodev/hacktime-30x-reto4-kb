@@ -174,12 +174,14 @@ export default function Inicio() {
   return (
     <Centro ancho>
       <Encabezado />
-      <div className="mb-5 flex items-center justify-between">
-        <p className="text-tenue">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        {/* `min-w-0` + `truncate`: un nombre largo empujaba el boton Salir
+            fuera de la pantalla en lugar de recortarse. */}
+        <p className="min-w-0 truncate text-tenue">
           {yo?.nombre} · {yo?.rol === 'LIDER' ? 'líder de costos' : 'contador'}
         </p>
         <button
-          className="text-sm text-tenue underline"
+          className="toque-menor shrink-0 rounded-xl px-3 text-sm text-tenue underline active:bg-superficie"
           onClick={async () => {
             await api('/auth/logout', { method: 'POST' });
             location.reload();
@@ -213,7 +215,7 @@ export default function Inicio() {
 
       {sinInventario.length > 0 && (
         <details className="mt-6">
-          <summary className="cursor-pointer text-sm text-tenue">
+          <summary className="toque-menor flex cursor-pointer items-center text-sm text-tenue">
             Otras {sinInventario.length} bodegas del parque (sin inventario en el archivo)
           </summary>
           {/*
@@ -234,8 +236,10 @@ export default function Inicio() {
 
 function Centro({ children, ancho }: { children: React.ReactNode; ancho?: boolean }) {
   return (
-    <main className="mx-auto flex min-h-screen w-full flex-col justify-center px-5 py-8"
-      style={{ maxWidth: ancho ? 680 : 460 }}>
+    <main
+      className="min-alto-pantalla margen-inferior-seguro mx-auto flex w-full flex-col justify-center px-5 py-8"
+      style={{ maxWidth: ancho ? 680 : 460 }}
+    >
       {children}
     </main>
   );

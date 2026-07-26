@@ -58,6 +58,32 @@ body {
 }
 
 /*
+ * Objetivo tactil de los controles SECUNDARIOS (filtros de familia, alternar
+ * conteo/merma, motivos de baja).
+ *
+ * 56 px es lo correcto para lo que se pulsa cien veces por bodega, pero
+ * aplicarlo a nueve filtros en fila mas los seis motivos de merma consume una
+ * pantalla de telefono completa. 44 px es el minimo de las guias de Apple y
+ * Android: por debajo de eso el dedo falla de verdad, y estos controles estaban
+ * en 34.
+ */
+.toque-menor {
+  min-height: 44px;
+}
+
+/*
+ * Foco visible con teclado.
+ *
+ * `outline-none` en los campos deja sin rastro a quien navega con teclado (o
+ * con un lector de codigos que emula uno). Se marca solo cuando el navegador
+ * determina que el foco viene del teclado, asi que el dedo no lo dispara.
+ */
+:where(button, a, input, [role='button'], summary):focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+}
+
+/*
  * Alto de pantalla REAL.
  *
  * `100vh` no sirve: en Chrome y Safari moviles equivale al viewport GRANDE, el
@@ -74,9 +100,105 @@ body {
   height: 100dvh;
 }
 
+/*
+ * Variante para pantallas que SI pueden crecer y desplazarse (el ingreso, el
+ * diagnostico, el cierre del lider).
+ *
+ * Ahi `alto-pantalla` seria un error: fijar el alto recortaria el contenido que
+ * no cabe. Lo que se quiere es un minimo — llenar la pantalla real — dejando
+ * que crezca si hace falta. `min-h-screen` de Tailwind usa `100vh` y arrastra
+ * el mismo defecto: en movil centra respecto a una pantalla mas alta que la
+ * visible, y el teclado del PIN acababa parcialmente bajo la barra de
+ * direcciones.
+ */
+.min-alto-pantalla {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 /* Respeta la barra de gestos del telefono/tablet. */
 .margen-inferior-seguro {
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+/*
+ * MODO ENFOQUE — una tarea por pantalla cuando la pantalla es corta.
+ *
+ * La pantalla de conteo son dos paneles apilados: la lista de articulos arriba
+ * (flexible) y la zona de captura abajo (contenido fijo). En una tablet de
+ * 1024 px los dos caben de sobra. En un telefono depende de QUE panel este
+ * abierto, porque no miden lo mismo — medido, no estimado:
+ *
+ *   lista sola ....  249 px   siempre cabe
+ *   conteo ........  469 px   deja 295 px de lista en un telefono de 844
+ *                             (3 articulos, util); nada por debajo de ~790
+ *   merma .........  739 px   no deja lista utilizable en NINGUN telefono
+ *
+ * De ahi que sean dos umbrales y no uno. Ocultar la lista siempre que hubiera
+ * un articulo activo dejaba 225 px de vacio contando en un telefono normal,
+ * donde la lista cabia perfectamente. Y dejarla siempre la reducia a 46 px en
+ * merma: un sobrante que no informa de nada y le roba altura al teclado.
+ *
+ * Cuando se oculta no se pierde nada: el nombre, el numero de catalogo y la
+ * unidad del articulo activo ya estan en la zona de captura, y "Cancelar"
+ * devuelve a la lista.
+ *
+ * Los umbrales son de ALTO, no de ancho: el problema es vertical. Una tablet en
+ * vertical conserva los dos paneles; un telefono en horizontal entra en modo
+ * enfoque, que es justo lo que necesita.
+ */
+
+/* Merma (739 px): no cabe con la lista en ningun telefono. */
+@media (max-height: 899px) {
+  main[data-panel='merma'] .lista-articulos {
+    display: none;
+  }
+}
+
+/* Conteo (469 px): cabe con 3 articulos en un telefono de 844, no por debajo
+   de 790. */
+@media (max-height: 789px) {
+  main[data-panel='conteo'] .lista-articulos {
+    display: none;
+  }
+}
+
+@media (max-height: 899px) {
+  /*
+   * Con la lista oculta la captura puede seguir siendo mas alta que la pantalla
+   * (739 px de merma en un telefono de 667). Se le permite encoger y
+   * desplazarse por dentro: sin esto, el `overflow-hidden` del contenedor
+   * recorta el boton de guardar y deja el flujo sin salida.
+   */
+  main[data-panel='merma'] .zona-captura,
+  main[data-panel='conteo'] .zona-captura {
+    min-height: 0;
+    flex-shrink: 1;
+    overflow-y: auto;
+  }
+
+  /*
+   * Y pegada ABAJO, no arriba.
+   *
+   * Con la lista oculta ya no hay nadie que absorba el espacio libre, asi que
+   * la captura subia al borde superior y dejaba el vacio DEBAJO — el teclado
+   * terminaba en la zona mas lejana para el pulgar, justo lo contrario del
+   * principio de esta hoja: todo lo interactivo vive en la mitad inferior.
+   * `margin-top: auto` se come el hueco por arriba y devuelve el teclado al
+   * alcance de la mano.
+   *
+   * Solo aplica cuando la lista esta oculta: con la lista visible es ella la
+   * que crece (`flex-1`) y no queda hueco que repartir.
+   */
+  main[data-panel='merma'] .zona-captura {
+    margin-top: auto;
+  }
+}
+
+@media (max-height: 789px) {
+  main[data-panel='conteo'] .zona-captura {
+    margin-top: auto;
+  }
 }
 
 .tecla {

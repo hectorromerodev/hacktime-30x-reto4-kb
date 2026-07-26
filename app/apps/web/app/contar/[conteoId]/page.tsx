@@ -664,7 +664,16 @@ export default function Contar() {
   const contados = contadosPorArticulo.size;
 
   return (
-    <main className="alto-pantalla mx-auto flex max-w-2xl flex-col overflow-hidden">
+    <main
+      className="alto-pantalla mx-auto flex max-w-2xl flex-col overflow-hidden"
+      /*
+       * Que panel esta abierto. En pantalla corta la lista se oculta, y el
+       * umbral depende del panel porque conteo mide 469 px y merma 739. La
+       * regla vive en globals.css (`MODO ENFOQUE`): es una consulta de ALTO de
+       * pantalla, y eso no se puede expresar con clases de utilidad.
+       */
+      data-panel={!activo ? 'lista' : tipo === 'MERMA' ? 'merma' : 'conteo'}
+    >
       {/* ── Cabecera: progreso y estado de red ── */}
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-borde px-3 py-3">
         {/* Salida explícita. Antes el nombre de la bodega era el único modo de
@@ -729,13 +738,13 @@ export default function Contar() {
       {/* ── Lista de articulos (sin cantidades del sistema) ── */}
       {/* min-h-0 es obligatorio: sin el, un hijo flex se niega a encogerse por
           debajo de su contenido y empuja la zona de captura fuera del marco. */}
-      <section className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+      <section className="lista-articulos min-h-0 flex-1 overflow-y-auto px-4 py-3">
         <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
           {familias.map((f) => (
             <button
               key={f}
               onClick={() => setFamilia(f)}
-              className={`shrink-0 rounded-full border px-3 py-2 text-xs ${
+              className={`toque-menor shrink-0 rounded-full border px-4 text-sm transition-colors ${
                 familia === f ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
               }`}
             >
@@ -751,7 +760,16 @@ export default function Contar() {
           className="toque mb-3 w-full rounded-xl border border-borde bg-superficie px-4 text-base outline-none focus:border-acento"
         />
 
-        <ul className="grid gap-2 pb-4">
+        {/*
+          `grid-cols-1` no es decorativo: sin el, la pista implicita del grid se
+          dimensiona a `max-content`. Como `truncate` implica
+          `white-space: nowrap`, el nombre mas largo del catalogo estiraba la
+          columna a 418 px dentro de un contenedor de 358 — el `truncate` no
+          llegaba a actuar nunca y la columna derecha, la de la cantidad ya
+          contada, quedaba 44 px fuera de la pantalla del telefono.
+          `grid-cols-1` la fija en `minmax(0, 1fr)` y ahi si recorta.
+        */}
+        <ul className="grid grid-cols-1 gap-2 pb-4">
           {visibles.slice(0, 120).map((a) => {
             const contado = contadosPorArticulo.get(a.id);
             const esActivo = activo?.id === a.id;
@@ -790,7 +808,7 @@ export default function Contar() {
       </section>
 
       {/* ── Zona de captura, siempre en la mitad inferior ── */}
-      <section className="margen-inferior-seguro shrink-0 border-t border-borde bg-superficie/70 px-4 pt-3 backdrop-blur">
+      <section className="zona-captura margen-inferior-seguro shrink-0 border-t border-borde bg-superficie/70 px-4 pt-3 backdrop-blur">
         {avisoVoz && (
           <p className="mb-2 rounded-lg bg-alerta/15 px-3 py-2 text-sm text-alerta">{avisoVoz}</p>
         )}
@@ -830,7 +848,7 @@ export default function Contar() {
                 setTipo(t);
                 if (t === 'CONTEO') limpiarMerma();
               }}
-              className={`rounded-xl border py-2 text-sm font-medium ${
+              className={`toque-menor rounded-xl border text-sm font-medium transition-colors ${
                 tipo === t
                   ? t === 'MERMA'
                     ? 'border-alerta bg-alerta/15 text-alerta'
@@ -871,7 +889,7 @@ export default function Contar() {
                     <button
                       key={m}
                       onClick={() => setMotivoMerma(m)}
-                      className={`rounded-full border px-3 py-2 text-xs ${
+                      className={`toque-menor rounded-full border px-4 text-sm transition-colors ${
                         motivoMerma === m
                           ? 'border-alerta bg-alerta/20 text-alerta'
                           : 'border-borde text-tenue'
@@ -885,12 +903,18 @@ export default function Contar() {
                 {/* Colsubsidio no aclaró si el producto dañado se retira antes
                     del conteo. En vez de imponer una regla, se pregunta: con
                     eso el reporte calcula bien el descuadre. */}
-                <label className="mb-3 flex items-start gap-2 text-xs">
+                {/*
+                  La fila entera es el objetivo tactil, no solo la casilla de
+                  20 px: con guantes de bodega acertarle a un cuadro de 20 px es
+                  una loteria, y aqui una equivocacion descuadra el reporte
+                  (define si la merma se resta del conteo o no).
+                */}
+                <label className="toque-menor mb-3 -mx-1 flex cursor-pointer items-center gap-3 rounded-xl px-1 text-sm active:bg-alerta/10">
                   <input
                     type="checkbox"
                     checked={incluidoEnConteo}
                     onChange={(e) => setIncluidoEnConteo(e.target.checked)}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-alerta"
+                    className="h-6 w-6 shrink-0 rounded accent-alerta"
                   />
                   <span className="text-tenue">
                     Este producto <strong className="text-white">ya lo conté</strong> como
@@ -940,7 +964,6 @@ export default function Contar() {
             )}
 
             <div className="mb-2 grid grid-cols-4 gap-2">
-              {['7', '8', '9', '1', '4', '5', '6', '2', '1', '2', '3', '3'].slice(0, 0)}
               {['7', '8', '9'].map((d) => (
                 <Tecla key={d} onClick={() => setCantidad(cantidad + d)}>{d}</Tecla>
               ))}
@@ -980,14 +1003,26 @@ export default function Contar() {
                 setActivo(null);
                 setCantidad('');
               }}
-              className="w-full py-2 text-sm text-tenue"
+              // En modo enfoque este boton es la UNICA vuelta a la lista, asi
+              // que no puede medir 36 px de alto.
+              className="toque-menor w-full rounded-xl text-sm text-tenue transition-colors active:bg-superficie-alta"
             >
               Cancelar
             </button>
           </>
         ) : (
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0 flex-1">
+          /*
+           * Dos filas, no una.
+           *
+           * Estaban los cuatro controles y la pista en una sola fila. Entre el
+           * microfono (104 px), "Escanear" y la casilla de continuo, a la pista
+           * le quedaban 67 px medidos en un telefono de 390: "Dicta, e…". El
+           * texto que explica como se usa la pantalla era justo el que no se
+           * podia leer. Ahora la pista tiene el ancho completo y los controles
+           * van debajo.
+           */
+          <div className="flex flex-col gap-3">
+            <div className="min-h-[2.5rem]">
               {escuchando ? (
                 <p className="text-sm font-medium text-acento">
                   {parcial ? <span className="text-white">{parcial}…</span> : 'Escuchando… habla ahora'}
@@ -1009,64 +1044,87 @@ export default function Contar() {
                       </span>
                     </p>
                   )}
-                  <p className="truncate text-sm text-tenue">
-                    {siguienteSinContar ? (
-                      <>
-                        Dicta, escanea o toca el que sigue. Atajo:{' '}
-                        <button
-                          onClick={() => elegirArticulo(siguienteSinContar)}
-                          className="text-white underline"
-                        >
-                          {siguienteSinContar.nombre.trim()}
-                        </button>
-                      </>
-                    ) : (
-                      'Todo contado en esta vista.'
-                    )}
-                  </p>
+                  {siguienteSinContar ? (
+                    <div className="flex items-center gap-2">
+                      <p className="shrink-0 text-sm text-tenue">Dicta, escanea o toca. Atajo:</p>
+                      {/*
+                        Era un enlace subrayado de 47x20 px dentro del parrafo:
+                        imposible de acertar con el pulgar. Ahora es una ficha
+                        con el mismo minimo tactil que el resto.
+                      */}
+                      <button
+                        onClick={() => elegirArticulo(siguienteSinContar)}
+                        className="toque-menor min-w-0 flex-1 truncate rounded-xl border border-borde bg-superficie-alta px-3 text-left text-sm text-white transition-colors active:border-acento"
+                      >
+                        {siguienteSinContar.nombre.trim()}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-tenue">Todo contado en esta vista.</p>
+                  )}
                 </>
               )}
             </div>
 
-            {/* Dictado continuo: el micrófono se reabre solo tras cada frase
-                y lo inequívoco se guarda sin preguntar. */}
-            <label className="flex shrink-0 flex-col items-center gap-1 text-[11px] text-tenue">
-              <input
-                type="checkbox"
-                checked={continuo}
-                onChange={(e) => cambiarContinuo(e.target.checked)}
-                className="h-6 w-10 accent-acento"
-              />
-              continuo
-              {continuo && dictados > 0 && (
-                <span className="text-acento">{dictados}</span>
-              )}
-            </label>
+            <div className="flex items-center gap-3">
+              {/* Dictado continuo: el micrófono se reabre solo tras cada frase
+                  y lo inequívoco se guarda sin preguntar. */}
+              {/*
+                Era un `input[type=checkbox]` crudo de 40x24: se veia como un
+                cuadro blanco del sistema, desentonaba con todo lo demas y no
+                llegaba al minimo tactil. Mismo comportamiento, con `role
+                switch` para que el lector de pantalla lo siga anunciando como
+                interruptor.
+              */}
+              <button
+                role="switch"
+                aria-checked={continuo}
+                onClick={() => cambiarContinuo(!continuo)}
+                className={`toque-menor flex shrink-0 items-center gap-2 rounded-xl border px-3 text-xs transition-colors ${
+                  continuo ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
+                }`}
+              >
+                <span
+                  aria-hidden
+                  className={`flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors ${
+                    continuo ? 'bg-acento' : 'bg-borde'
+                  }`}
+                >
+                  <span
+                    className={`h-4 w-4 rounded-full bg-white transition-transform ${
+                      continuo ? 'translate-x-4' : ''
+                    }`}
+                  />
+                </span>
+                continuo
+                {continuo && dictados > 0 && <span className="text-acento">{dictados}</span>}
+              </button>
 
-            <button
-              onClick={() => setEscaneando(true)}
-              className="toque rounded-xl border border-borde px-4 text-sm"
-              title="Escanear código o QR de estante"
-            >
-              Escanear
-            </button>
+              <button
+                onClick={() => setEscaneando(true)}
+                className="toque flex-1 rounded-xl border border-borde px-4 text-sm transition-colors active:border-acento"
+                title="Escanear código o QR de estante"
+              >
+                Escanear
+              </button>
 
-            <button
-              className="microfono bg-acento text-black disabled:opacity-40"
-              data-escuchando={escuchando}
-              // Ya NO se cancela en onPointerLeave: al sostener el boton en una
-              // tablet el dedo se mueve unos pixeles y salia del elemento,
-              // matando la captura a media frase.
-              onPointerDown={alPresionarMicrofono}
-              onPointerUp={alSoltarMicrofono}
-              onPointerCancel={terminarEscucha}
-              aria-label={escuchando ? 'Escuchando, toca para terminar' : 'Toca o mantén presionado para dictar'}
-            >
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-                <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Z" />
-                <path d="M18 11a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.917V19H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.083A6 6 0 0 0 18 11Z" />
-              </svg>
-            </button>
+              <button
+                className="microfono shrink-0 bg-acento text-black disabled:opacity-40"
+                data-escuchando={escuchando}
+                // Ya NO se cancela en onPointerLeave: al sostener el boton en una
+                // tablet el dedo se mueve unos pixeles y salia del elemento,
+                // matando la captura a media frase.
+                onPointerDown={alPresionarMicrofono}
+                onPointerUp={alSoltarMicrofono}
+                onPointerCancel={terminarEscucha}
+                aria-label={escuchando ? 'Escuchando, toca para terminar' : 'Toca o mantén presionado para dictar'}
+              >
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Z" />
+                  <path d="M18 11a1 1 0 1 0-2 0 4 4 0 0 1-8 0 1 1 0 1 0-2 0 6 6 0 0 0 5 5.917V19H9a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2h-2v-2.083A6 6 0 0 0 18 11Z" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
       </section>
@@ -1232,7 +1290,7 @@ function DialogoAnomalias({
                   <button
                     key={m}
                     onClick={() => setMotivo(m)}
-                    className={`rounded-full border px-3 py-2 text-xs ${
+                    className={`toque-menor rounded-full border px-4 text-sm transition-colors ${
                       motivo === m ? 'border-acento bg-acento/15 text-acento' : 'border-borde text-tenue'
                     }`}
                   >
@@ -1256,5 +1314,8 @@ function DialogoAnomalias({
 }
 
 function Pantalla({ children }: { children: React.ReactNode }) {
-  return <main className="flex h-screen items-center justify-center px-6">{children}</main>;
+  // `alto-pantalla` y no `h-screen`: en movil `100vh` cuenta con la barra de
+  // direcciones colapsada, asi que centra respecto a una pantalla mas alta que
+  // la real y el contenido queda por debajo del centro visible.
+  return <main className="alto-pantalla flex items-center justify-center px-6">{children}</main>;
 }

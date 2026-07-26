@@ -290,15 +290,38 @@ describe('cerrar sesion', () => {
 
 describe('el reporte del lider SI muestra el sistema (el conteo ya termino)', () => {
   test('ahi la comparacion es el objetivo, no una fuga', async () => {
+    // Con la sesion del `before` (un CONTADOR) esta ruta responde 403, y debe:
+    // `rutasExportacion` exige LIDER porque devuelve `sd`. Se entra como lider.
+    const lider = await prisma.usuario.findFirstOrThrow({ where: { rol: 'LIDER' } });
+    const login = await app.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: { usuarioId: lider.id, pin: lider.pin },
+    });
+    assert.equal(login.statusCode, 200, login.body);
+    const galleta = login.headers['set-cookie']!.toString().split(';')[0];
+
     const res = await app.inject({
       method: 'GET',
       url: `/conteos/${conteoId}/reporte`,
-      headers: { cookie },
+      headers: { cookie: galleta },
     });
-    assert.equal(res.statusCode, 200);
+    assert.equal(res.statusCode, 200, res.body);
     // La duena del negocio pidio exactamente esto: "cuanto subi y cuanto me
     // cargo al sistema". Es una pantalla de cierre, no de captura.
     assert.ok('resumen' in res.json());
     assert.ok(Array.isArray(res.json().diferencias));
+  });
+
+  test('y al contador se le niega: /reporte devuelve sd', async () => {
+    // La otra mitad del control. Sin esto, quitar `requiereLider` de
+    // `rutasExportacion` dejaria la suite verde mientras cualquier contador
+    // puede leer las cantidades del sistema A MITAD del conteo.
+    const res = await app.inject({
+      method: 'GET',
+      url: `/conteos/${conteoId}/reporte`,
+      headers: { cookie }, // la sesion del `before`: un CONTADOR
+    });
+    assert.equal(res.statusCode, 403, 'FUGA: un contador pudo pedir el reporte');
   });
 });
