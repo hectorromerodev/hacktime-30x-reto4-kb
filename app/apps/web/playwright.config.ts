@@ -29,6 +29,9 @@ export default defineConfig({
     baseURL: BASE_URL,
     ignoreHTTPSErrors: true, // Caddy emite certificado local de desarrollo
     trace: 'on-first-retry',
+    // Deja evidencia cuando un test cae: sin esto el artefacto de CI queda
+    // vacío (reporter `list`, sin reintentos) y no hay nada que mirar.
+    screenshot: 'only-on-failure',
   },
 
   projects: [
