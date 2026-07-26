@@ -177,6 +177,13 @@ export default function Contar() {
     return m;
   }, [capturas]);
 
+  const contadosPorMi = useMemo(() => {
+    const mio = usuario?.nombre;
+    const s = new Set<string>();
+    if (mio) for (const c of capturas) if (c.usuarioNombre === mio) s.add(c.articuloId);
+    return s;
+  }, [capturas, usuario?.nombre]);
+
   // ── Carga inicial: catalogo desde red, o desde IndexedDB si no hay ──────
   useEffect(() => {
     (async () => {
@@ -773,6 +780,11 @@ export default function Contar() {
                     <span className="text-xs text-tenue">
                       {ETIQUETA_UNIDAD[a.unidad as Unidad].plural}
                     </span>
+                    {contadosPorMi.has(a.id) && (
+                      <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-acento/15 px-2 py-0.5 text-[11px] font-semibold text-acento">
+                        ✓ Contado
+                      </span>
+                    )}
                   </span>
                   <span className="shrink-0 text-right">
                     {contado !== undefined ? (
