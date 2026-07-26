@@ -14,7 +14,7 @@
  * otro conteo.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, isValidElement } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { api, urlBase } from '@/lib/api';
 
@@ -164,31 +164,43 @@ export default function Lider() {
   ];
 
   return (
-    <main className="mx-auto min-h-screen max-w-5xl px-4 py-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <button onClick={() => router.push('/')} className="mb-1 text-sm text-tenue">
-            ← Bodegas
-          </button>
-          <h1 className="truncate text-2xl font-semibold">{reporte.bodega}</h1>
-          <p className="text-sm text-tenue">
-            Periodo {reporte.periodo}
-            {reporte.secuencia > 1 && ` · conteo #${reporte.secuencia}`} ·{' '}
-            <span className={cerrado ? 'text-acento' : 'text-alerta-texto'}>
-              {cerrado ? 'cerrado' : 'abierto'}
-            </span>
-            {reporte.cerradoEn &&
-              ` el ${new Date(reporte.cerradoEn).toLocaleString('es-CO')}`}
-          </p>
+    <main className="min-alto-pantalla margen-inferior-seguro mx-auto max-w-5xl px-4 py-5">
+      {/*
+        En telefono el titulo y la accion NO comparten fila.
+        Con "Cerrar conteo" al lado, el nombre de la bodega se truncaba a
+        "Kiosco Piscigiro..." — y saber que bodega estas cerrando importa mas
+        que ahorrar una fila. A partir de 640 px vuelven a la misma linea,
+        donde si caben los dos.
+      */}
+      <div className="mb-4">
+        <button
+          onClick={() => router.push('/')}
+          className="toque-menor -ml-2 rounded-xl px-2 text-sm text-tenue active:bg-superficie-alta"
+        >
+          ← Bodegas
+        </button>
+        <div className="sm:flex sm:items-start sm:justify-between sm:gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold">{reporte.bodega}</h1>
+            <p className="text-sm text-tenue">
+              Periodo {reporte.periodo}
+              {reporte.secuencia > 1 && ` · conteo #${reporte.secuencia}`} ·{' '}
+              <span className={cerrado ? 'text-acento' : 'text-alerta-texto'}>
+                {cerrado ? 'cerrado' : 'abierto'}
+              </span>
+              {reporte.cerradoEn &&
+                ` el ${new Date(reporte.cerradoEn).toLocaleString('es-CO')}`}
+            </p>
+          </div>
+          {!cerrado && (
+            <button
+              onClick={() => setConfirmandoCierre(true)}
+              className="toque mt-3 w-full shrink-0 rounded-xl bg-acento px-5 font-semibold text-white transition-colors active:bg-[var(--acento-oscuro)] sm:mt-0 sm:w-auto"
+            >
+              Cerrar conteo
+            </button>
+          )}
         </div>
-        {!cerrado && (
-          <button
-            onClick={() => setConfirmandoCierre(true)}
-            className="toque shrink-0 rounded-xl bg-acento px-5 font-semibold text-white"
-          >
-            Cerrar conteo
-          </button>
-        )}
       </div>
 
       {reporte.notaCierre && (
@@ -221,13 +233,13 @@ export default function Lider() {
         </a>
         <a
           href={`${urlBase}/conteos/${conteoId}/export.csv`}
-          className="toque flex items-center rounded-xl border border-borde px-4"
+          className="toque flex items-center rounded-xl border border-borde-fuerte px-4 font-medium"
         >
           CSV
         </a>
         <a
           href={`/etiquetas/${conteoId}`}
-          className="toque flex items-center rounded-xl border border-borde px-4"
+          className="toque flex items-center rounded-xl border border-borde-fuerte px-4 font-medium"
         >
           Etiquetas QR
         </a>
@@ -314,6 +326,7 @@ export default function Lider() {
       {pestana === 'conteo' && (
         <Tabla
           cabeceras={['Nr.', 'Artículo', 'Unidad', 'Sistema', 'Contado', 'Merma', 'Método']}
+          indiceTitulo={1}
           vacia="Sin artículos."
           filas={reporte.conteo.map((f) => [
             <span key="n" className="font-mono text-xs text-tenue">{f.nrArticulo ?? '—'}</span>,
@@ -411,6 +424,7 @@ export default function Lider() {
       {pestana === 'trazabilidad' && (
         <Tabla
           cabeceras={['Hora', 'Contador', 'Artículo', 'Cantidad', 'Método', 'Dictado', 'Anomalías']}
+          indiceTitulo={2}
           vacia="Sin capturas."
           filas={reporte.trazabilidad.map((t, i) => [
             <span key="h" className="whitespace-nowrap text-xs text-tenue">
@@ -504,41 +518,106 @@ export default function Lider() {
   );
 }
 
+/**
+ * ¿La celda no pinta nada? Las filas pasan `<span/>` vacio para "sin dato".
+ *
+ * La comprobacion se limita a elementos del DOM (`typeof type === 'string'`).
+ * Un COMPONENTE no expone su contenido en `props.children` — `<Num v={30.59}/>`
+ * recibe `v`, no hijos — asi que mirar `children` a secas lo declaraba vacio y
+ * las tarjetas perdian Sistema, Contado y Diferencia: se quedaban con el nombre
+ * del articulo y el contador, justo las dos columnas que no son el dato.
+ */
+function celdaVacia(celda: React.ReactNode) {
+  if (celda === null || celda === undefined || celda === false || celda === '') return true;
+  if (isValidElement(celda)) {
+    if (typeof celda.type !== 'string') return false;
+    const hijos = (celda.props as { children?: React.ReactNode }).children;
+    return hijos === null || hijos === undefined || hijos === '';
+  }
+  return false;
+}
+
+/**
+ * Tabla en pantalla ancha, TARJETAS en telefono.
+ *
+ * Estas tres tablas tienen siete columnas. Con `overflow-x-auto` la pagina no
+ * se rompia, pero en 390 px quedaba un carrusel horizontal en el que hay que
+ * arrastrar para ver "Contado" — y esta es justamente la pantalla del cierre,
+ * donde el lider compara contra el sistema. Una tabla de siete columnas no
+ * cabe en un telefono, y encogerla mas tampoco es la respuesta.
+ *
+ * Debajo de 640 px cada fila pasa a ser una tarjeta: el articulo como titulo y
+ * el resto como pares etiqueta/valor. Se omiten los pares vacios, que en una
+ * tabla son celdas en blanco inofensivas pero en una tarjeta serian ruido.
+ *
+ * Los datos y el orden no cambian: es el MISMO array de filas, presentado de
+ * dos maneras segun el ancho. Por eso las tres llamadas siguen intactas.
+ */
 function Tabla({
   cabeceras,
   filas,
   vacia,
+  indiceTitulo = 0,
 }: {
   cabeceras: string[];
   filas: React.ReactNode[][];
   vacia: string;
+  /** Columna que hace de titulo en la tarjeta (el nombre del articulo). */
+  indiceTitulo?: number;
 }) {
   if (filas.length === 0) return <p className="tarjeta text-sm text-tenue">{vacia}</p>;
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-borde">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b border-borde bg-superficie text-left text-xs text-tenue">
-            {cabeceras.map((c) => (
-              <th key={c} className="whitespace-nowrap px-3 py-2 font-medium">
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map((f, i) => (
-            <tr key={i} className="border-b border-borde/40 last:border-0">
-              {f.map((celda, j) => (
-                <td key={j} className="px-3 py-2 align-top">
-                  {celda}
-                </td>
+    <>
+      {/* ── Telefono: una tarjeta por fila ── */}
+      <ul className="grid grid-cols-1 gap-2 sm:hidden">
+        {filas.map((f, i) => (
+          <li key={i} className="rounded-xl border border-borde bg-superficie p-3">
+            <p className="mb-2 border-b border-borde pb-2 text-sm font-semibold">
+              {f[indiceTitulo]}
+            </p>
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+              {f.map((celda, j) =>
+                j === indiceTitulo || celdaVacia(celda) ? null : (
+                  <div key={j} className="min-w-0">
+                    <dt className="text-[11px] uppercase tracking-wide text-tenue">
+                      {cabeceras[j]}
+                    </dt>
+                    <dd className="truncate">{celda}</dd>
+                  </div>
+                ),
+              )}
+            </dl>
+          </li>
+        ))}
+      </ul>
+
+      {/* ── Tablet y escritorio: la tabla, que aqui si cabe ── */}
+      <div className="hidden overflow-x-auto rounded-xl border border-borde sm:block">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-borde bg-superficie text-left text-xs text-tenue">
+              {cabeceras.map((c) => (
+                <th key={c} className="whitespace-nowrap px-3 py-2 font-medium">
+                  {c}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {filas.map((f, i) => (
+              <tr key={i} className="border-b border-borde/40 last:border-0">
+                {f.map((celda, j) => (
+                  <td key={j} className="px-3 py-2 align-top">
+                    {celda}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
