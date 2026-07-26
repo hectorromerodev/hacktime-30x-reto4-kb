@@ -63,12 +63,16 @@ interface RespuestaCatalogo {
 /**
  * ¿Se muestra el interruptor de dictado seguido?
  *
- * Retirado por decision de producto: era un AJUSTE compitiendo con las dos
- * acciones reales del panel (dictar y escanear), y solo tiene sentido con red y
- * en Chrome o Edge. La logica se conserva entera y se enciende poniendo esto en
- * `true`.
+ * Estuvo en `false` un tiempo: el interruptor era un AJUSTE compitiendo con las
+ * dos acciones reales del panel (dictar y escanear). El problema real no era que
+ * existiera, sino que se veia como una tercera accion — y la solucion de
+ * apagarlo dejo la funcion construida y probada sin ninguna forma de encenderla.
+ *
+ * Vuelve encendido, pero subordinado al microfono: control angosto, pegado a el,
+ * con etiqueta chica. Se lee como "asi se comporta el microfono", no como una
+ * opcion mas del panel.
  */
-const MOSTRAR_DICTADO_SEGUIDO: boolean = false;
+const MOSTRAR_DICTADO_SEGUIDO: boolean = true;
 
 export default function Contar() {
   const { conteoId } = useParams<{ conteoId: string }>();
@@ -150,10 +154,7 @@ export default function Contar() {
   const [continuo, setContinuo] = useState(false);
   useEffect(() => {
     /*
-     * El interruptor de dictado seguido se retiro de la interfaz.
-     *
-     * El estado y toda su logica se conservan — el dictado seguido sigue
-     * funcionando si algo lo activa — pero YA NO se lee de `localStorage`: sin
+     * Solo se recuerda la preferencia si el interruptor esta a la vista: sin
      * control visible, un dispositivo que lo hubiera encendido antes se
      * quedaria en modo seguido para siempre y sin forma de apagarlo.
      */
@@ -166,6 +167,7 @@ export default function Contar() {
   const detenidoAMano = useRef(false);
   /** Errores seguidos; con varios se apaga solo para no entrar en bucle. */
   const fallosSeguidos = useRef(0);
+  /** Cuantos artículos lleva guardados esta cadena de dictado seguido. */
   const [dictados, setDictados] = useState(0);
   /*
    * Si el navegador no reconoce voz, el dictado continuo no puede hacer nada.
@@ -557,9 +559,13 @@ export default function Contar() {
     if (!valor) {
       detenidoAMano.current = true;
       terminarEscucha();
-    } else {
-      setDictados(0);
+      return;
     }
+    // Al encender, la cadena arranca limpia: un fallo viejo no debe contar
+    // contra el corte por errores seguidos de esta sesion de dictado.
+    fallosSeguidos.current = 0;
+    detenidoAMano.current = false;
+    setDictados(0);
   }
 
   function elegirArticulo(a: ArticuloLocal, score: number | null = null) {
@@ -1165,6 +1171,13 @@ export default function Contar() {
               {escuchando ? (
                 <p className="text-sm font-medium text-acento">
                   {parcial ? <span className="text-texto">{parcial}…</span> : 'Escuchando… habla ahora'}
+                  {/* En dictado seguido el microfono no se cierra entre frases,
+                      asi que el unico signo de que la cadena esta guardando es
+                      este contador. Sin el, "sigue escuchando" y "se colgo" se
+                      ven exactamente igual. */}
+                  {continuo && dictados > 0 && (
+                    <span className="text-tenue"> · {dictados} guardados</span>
+                  )}
                 </p>
               ) : parcial ? (
                 <p className="text-sm text-texto">{parcial}…</p>
@@ -1241,11 +1254,40 @@ export default function Contar() {
                 </button>
 
                 {/*
-                  Solo si este navegador reconoce voz. Antes se mostraba igual
-                  cuando no habia soporte, o sea un control que no podia hacer
-                  nada. Con el microfono al lado y debajo de el, se lee como lo
-                  que es: como se comporta el microfono, no una tercera accion.
+                  Solo si este navegador reconoce voz: mostrarlo sin soporte
+                  seria ofrecer un control que no puede hacer nada.
+
+                  Angosto (56 px) y a la altura exacta del microfono: ocupa la
+                  misma fila sin crecer el panel, y por tamaño y proximidad se
+                  lee como un ajuste DEL microfono, no como una tercera accion.
                 */}
+                {MOSTRAR_DICTADO_SEGUIDO && hayVoz && (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={continuo}
+                    aria-label="Dictado seguido: el micrófono se vuelve a abrir solo tras cada frase"
+                    onClick={() => cambiarContinuo(!continuo)}
+                    className={`flex h-[104px] w-14 shrink-0 flex-col items-center justify-center gap-2 rounded-xl border text-[0.65rem] font-semibold leading-tight transition-colors ${
+                      continuo
+                        ? 'border-acento bg-acento/10 text-acento'
+                        : 'border-borde-fuerte bg-superficie text-tenue'
+                    }`}
+                  >
+                    <span
+                      className={`flex h-5 w-9 items-center rounded-full p-0.5 transition-colors ${
+                        continuo ? 'bg-acento' : 'bg-borde-fuerte'
+                      }`}
+                    >
+                      <span
+                        className={`h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                          continuo ? 'translate-x-4' : ''
+                        }`}
+                      />
+                    </span>
+                    Seguido
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1405,7 +1447,8 @@ function DialogoAnomalias({
             </button>
             {porQue && (
               <p className="mt-1 text-xs text-tenue">
-                En esta bodega suele estar {rangoHabitual(articulo.exp10)}.
+                En esta bodega suele estar{' '}
+                {rangoHabitual(articulo.exp10, articulo.unidad as Unidad)}.
               </p>
             )}
           </div>

@@ -575,7 +575,7 @@ y una dependencia menos. Es un cambio acotado, de un solo archivo.
 pnpm --filter @conteo/core test
 ```
 
-**61 tests** con el test runner nativo de Node.js (`node:test`), sin Jest ni Vitest.
+**72 tests** con el test runner nativo de Node.js (`node:test`), sin Jest ni Vitest.
 Cubren todo el paquete `core` — el mismo código que corre en el navegador sin red y en
 el servidor al sincronizar.
 
@@ -584,6 +584,18 @@ el servidor al sincronizar.
 | `parseEspanol.test.ts` | 24 | Números en español, fracciones, coma decimal colombiana, conversión g↔kg, conteos compuestos, envases, robustez ante dictado real |
 | `anomalias.test.ts` | 23 | Reglas R1–R9, `exp10` (orden de magnitud sin revelar SD), detección 9→90, conteo simultáneo, envases sin factor |
 | `normalizar.test.ts` | 14 | `quitarAcentos`: tildes, eñe→n; `normalizar`: espacios no-rompibles (U+00A0), puntuación; `descomponerNombre`: prefijos AFVT), sufijos (PA); `tokenizar` |
+| `numerosEspanol.test.ts` | 6 | Palabras-número compuestas y su límite: qué NO se interpreta como cantidad |
+| `unidades.test.ts` | 5 | Léxico de unidades, plurales y abreviaturas del catálogo |
+
+Además, en `apps/web`:
+
+```bash
+pnpm --filter web test
+```
+
+**4 tests** sobre `rangoHabitual()` — el texto del «¿Por qué?» de la regla R8. Verifican
+que use la unidad real del artículo (litros, no "unidades") y que el rango siempre
+admita varios valores, es decir que **nunca** deje deducir la cantidad del sistema.
 
 ### 9.2 E2E (Playwright)
 

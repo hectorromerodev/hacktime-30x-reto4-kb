@@ -71,11 +71,32 @@ otra tabla y el endpoint del catálogo tiene un `select` explícito que no la pi
 prueba automatizada que **falla** si el campo aparece en cualquier respuesta que reciba la
 tablet.
 
+### «La app me dijo "suele estar entre 10 y 99 litros". ¿Eso no es revelar la cantidad?»
+
+> **Esta es la pregunta que sale si el jurado toca la app.** El diálogo de anomalía tiene un
+> botón **«¿Por qué?»**, y al abrirlo muestra el rango. No se puede negar: hay que explicar
+> por qué ese rango no rompe el conteo ciego.
+
+**Corta:** *"Revela la **escala**, que es literalmente lo único que la tablet tiene. 'Entre 10
+y 99' son noventa valores posibles; el sistema tiene 30,59. Y aparece solo si la persona toca
+'¿Por qué?', **después** de haber capturado su número — nunca antes de escribirlo. Una alerta
+que no se puede explicar se ignora; preferimos explicarla."*
+
+**Si insisten:** hay un caso donde el rango sí queda estrecho — un artículo con 3 unidades cae
+en *"entre 1 y 9"*. Está aceptado a conciencia: son artículos donde equivocarse cuesta poco, y
+para cuando el contador ve el mensaje ya escribió su número. Si Colsubsidio prefiere lo
+contrario, es una línea de código: se oculta el aviso por debajo de cierto orden de magnitud.
+
+**Detalle que vale la pena decir si preguntan por el texto:** el rango usa **la unidad del
+artículo** — litros para el aceite, kilogramos para la harina. Decir *"unidades"* sobre un
+artículo medido en litros sería sembrar la confusión de unidades que esta app existe para
+eliminar, justo dentro del mensaje que explica una anomalía.
+
 ### «¿Y si el contador abre las herramientas del navegador?»
 
-**Corta:** *"Aprendería 'esto suele estar en las decenas'. Nunca el número. Es un intercambio
-deliberado: es lo que hace que la alerta funcione **sin red**, que es la condición normal en
-las bodegas de Piscilago."*
+**Corta:** *"Aprendería lo mismo que ya le dice el '¿Por qué?': 'esto suele estar en las
+decenas'. Nunca el número. Es un intercambio deliberado: es lo que hace que la alerta funcione
+**sin red**, que es la condición normal en las bodegas de Piscilago."*
 
 **Si insisten:** la alternativa era no mandar nada y verificar solo al sincronizar — pero
 entonces, sin señal, el contador guarda 900 y nadie se entera hasta horas después, cuando ya
@@ -220,7 +241,7 @@ del mercado: salen de cómo ustedes cuentan hoy."*
 
 **Corta:** *"Bastante, y lo usamos como herramienta, no como excusa. Lo que importa es que
 cada decisión de diseño sale de algo que ustedes dijeron en las sesiones, y que está
-verificado: 69 pruebas automatizadas más 9 end-to-end, incluida una que falla si el conteo deja de ser ciego."*
+verificado: 86 pruebas automatizadas más 9 end-to-end, incluida una que falla si el conteo deja de ser ciego."*
 
 ---
 
@@ -233,7 +254,7 @@ verificado: 69 pruebas automatizadas más 9 end-to-end, incluida una que falla s
 | Acierto del emparejador | **94,3% exacto · 99,4% en top-5** |
 | Tiempo por consulta | **0,101 ms** |
 | Precisión del auto-aceptado | **99,8%** sobre 3.517 casos |
-| Pruebas automatizadas | **69** (61 del núcleo + 8 del conteo ciego) + **9 end-to-end** con Playwright |
+| Pruebas automatizadas | **86** (72 del núcleo + 10 del conteo ciego + 4 de la interfaz) + **9 end-to-end** con Playwright |
 | Suciedad heredada que se maneja | 79 saldos negativos · 16 decimales en artículos por unidad · 252 filas sin número |
 | Nombres truncados por el sistema origen | **51** a exactamente 40 caracteres |
 | Digitación que se elimina | **~2 días por ciclo** (dato de ustedes) |
