@@ -1,0 +1,10 @@
+# ponytail: override para grabar el video — proyecto aislado en puertos libres.
+# Uso: docker compose -p conteo-video -f docker-compose.yml -f docker-compose.video.yml up -d --build
+services:
+  postgres:
+    ports: !reset []
+  web:
+    ports: !reset []
+  caddy:
+    ports: !override
+      - "9443:443"

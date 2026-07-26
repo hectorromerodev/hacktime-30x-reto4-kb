@@ -9,3 +9,6 @@ env
 .env
 .env.*
 !.env.example
+
+# Salida del pipeline de video (clips y MP4 generados)
+salida-video/
