@@ -1196,7 +1196,7 @@ function DialogoAnomalias({
               onClick={() => setPorQue((v) => !v)}
               className="text-xs text-tenue underline underline-offset-2"
             >
-              ℹ ¿Por qué?
+              ¿Por qué?
             </button>
             {porQue && (
               <p className="mt-1 text-xs text-tenue">
