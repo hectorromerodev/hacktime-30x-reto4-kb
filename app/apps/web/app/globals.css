@@ -321,21 +321,6 @@ main[data-panel='merma'] .pantalla-cantidad .cifra {
 }
 
 /*
- * Teclas dentro del panel azul (el PIN de la pantalla de entrada).
- *
- * `.tecla` esta pensada para fondo claro: superficie elevada y digito oscuro.
- * Sobre el azul de marca eso resultaria en un teclado de bloques claros que
- * pesa mas que el contenido. Aqui se vuelve translucido con digito blanco:
- * mismo tamaño y mismo comportamiento, aspecto minimalista.
- *
- * Se limita a `.sobre-azul` para no tocar el teclado de `contar`, que si vive
- * sobre fondo claro.
- */
-.sobre-azul .tecla {
-  @apply border-white/25 bg-white/10 text-white active:bg-white active:text-acento;
-}
-
-/*
  * PANTALLA CORTA (iPhone SE y parecidos, 667 px de alto).
  *
  * En el paso del PIN el contenido pedia 586 px dentro de un panel de 460:
@@ -366,7 +351,7 @@ main[data-panel='merma'] .pantalla-cantidad .cifra {
     display: none;
   }
 
-  .sobre-azul .tecla {
+  .panel-entrada .tecla {
     min-height: 56px;
   }
 

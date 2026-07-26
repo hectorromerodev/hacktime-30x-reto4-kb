@@ -114,7 +114,7 @@ export default function Inicio() {
   if (paso === 'cargando') {
     return (
       <Marco>
-        <p className="text-sobre-azul">Cargando…</p>
+        <p className="text-tenue">Cargando…</p>
       </Marco>
     );
   }
@@ -124,10 +124,11 @@ export default function Inicio() {
       <Marco>
         <Titulo>¿Quién va a contar?</Titulo>
         {error && <Aviso>{error}</Aviso>}
-        <Lista>
+        <Lista tono="claro">
           {usuarios.map((u) => (
             <Fila
               key={u.id}
+              tono="claro"
               onClick={() => {
                 setElegido(u);
                 setPin('');
@@ -160,13 +161,13 @@ export default function Inicio() {
         <div className="text-center">
           <span
             aria-hidden
-            className="avatar-pin mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 text-lg font-bold"
+            className="avatar-pin mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-acento/10 text-lg font-bold text-acento"
           >
             {iniciales(elegido?.nombre ?? '')}
           </span>
-          <p className="mt-3 text-sm text-sobre-azul">Hola,</p>
+          <p className="mt-3 text-sm text-tenue">Hola,</p>
           <p className="text-2xl font-bold leading-tight">{elegido?.nombre}</p>
-          <p className="mt-3 text-sm text-sobre-azul">Ingresa tu PIN</p>
+          <p className="mt-3 text-sm text-tenue">Ingresa tu PIN</p>
         </div>
 
         <div
@@ -176,10 +177,11 @@ export default function Inicio() {
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              /* Amarillo de marca al llenarse. Dentro del azul si se lee
-                 (5.97:1), que es lo que no puede hacer sobre fondo claro. */
+              /* Azul de marca al llenarse: sobre el fondo hueso el amarillo no
+                 se leeria (1.47:1), el azul si (8.12:1). El vacio va en borde
+                 fuerte para que el hueco tambien se vea. */
               className={`h-3 w-3 rounded-full transition-colors ${
-                pin.length > i ? 'scale-125 bg-alerta' : 'bg-white/30'
+                pin.length > i ? 'scale-125 bg-acento' : 'bg-borde-fuerte'
               }`}
             />
           ))}
@@ -225,7 +227,7 @@ export default function Inicio() {
             setPin('');
             setError(null);
           }}
-          className="toque mt-2 w-full rounded-xl text-base font-medium text-sobre-azul underline decoration-white/30 underline-offset-4 transition-colors active:bg-white/10"
+          className="toque mt-2 w-full rounded-xl text-base font-medium text-tenue underline decoration-borde underline-offset-4 transition-colors active:bg-superficie-alta"
         >
           Regresar
         </button>
@@ -348,7 +350,7 @@ function iniciales(nombre: string) {
  */
 function Marco({ children }: { children: React.ReactNode }) {
   return (
-    <main className="alto-pantalla flex flex-col overflow-hidden bg-superficie">
+    <main className="alto-pantalla flex flex-col overflow-hidden bg-fondo">
       <header className="marca-entrada shrink-0 px-5 pb-6 pt-10 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -364,11 +366,12 @@ function Marco({ children }: { children: React.ReactNode }) {
       </header>
 
       {/*
-        `sobre-azul` cambia el aspecto de `.tecla` solo aqui: el teclado del PIN
-        pasa a translucido con digitos blancos. En `contar`, que es claro, las
-        teclas siguen igual.
+        Panel sobre el fondo hueso, igual que el resto de la app. `panel-entrada`
+        no aporta color: solo ancla la regla que encoge las teclas del PIN en
+        pantallas cortas (iPhone SE). El teclado usa `.tecla` por defecto —
+        tarjeta blanca con digito oscuro, el mismo que la pantalla de captura.
       */}
-      <section className="sobre-azul margen-inferior-seguro min-h-0 flex-1 overflow-y-auto rounded-t-3xl bg-acento px-5 pt-6 text-white">
+      <section className="panel-entrada margen-inferior-seguro min-h-0 flex-1 overflow-y-auto px-5 pt-6 text-texto">
         <div className="mx-auto flex min-h-full w-full flex-col" style={{ maxWidth: 520 }}>
           {children}
         </div>
@@ -538,7 +541,9 @@ function Fila({
         {inicial && (
           <span
             aria-hidden
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-bold"
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+              claro ? 'bg-acento/10 text-acento' : 'bg-white/15'
+            }`}
           >
             {inicial}
           </span>
@@ -575,7 +580,7 @@ function Fila({
           <span
             className={`block truncate text-xs ${
               destacado
-                ? 'font-semibold text-alerta'
+                ? `font-semibold ${claro ? 'text-alerta-texto' : 'text-alerta'}`
                 : claro
                   ? 'text-tenue'
                   : 'text-sobre-azul'
