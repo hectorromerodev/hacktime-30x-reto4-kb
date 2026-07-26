@@ -87,12 +87,21 @@ export function EscanerCodigo({
   codigos,
   articulos,
   onArticulo,
+  onCapturaRapida,
   onCerrar,
 }: {
   codigos: Map<string, string>;
   articulos: ArticuloLocal[];
   /** Recibe el artículo y el código con el que se resolvió, para trazabilidad. */
   onArticulo: (a: ArticuloLocal, codigo: string) => void;
+  /**
+   * Guarda una captura SIN salir del escáner. Es lo que hace posible el modo
+   * automático: recorrer un estante encadenando lecturas.
+   *
+   * Devuelve `true` si se guardó. Si devuelve `false` es porque saltó una
+   * anomalía que hay que resolver fuera, y el escáner se cierra.
+   */
+  onCapturaRapida?: (a: ArticuloLocal, cantidad: number, codigo: string) => Promise<boolean>;
   onCerrar: () => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -134,6 +143,32 @@ export function EscanerCodigo({
   const auto = useRef(false);
   auto.current = automatico;
 
+  /** Cantidad que se teclea sin salir de la cámara, en modo automático. */
+  const [cantidad, setCantidad] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  /** Lo capturado en esta sesión de escaneo, para ver el avance. */
+  const [capturados, setCapturados] = useState<{ nombre: string; cantidad: number }[]>([]);
+
+  async function guardarYSeguir() {
+    if (!porConfirmar || !onCapturaRapida) return;
+    const valor = Number(cantidad.replace(',', '.'));
+    if (!Number.isFinite(valor)) return;
+
+    setGuardando(true);
+    const guardado = await onCapturaRapida(porConfirmar.articulo, valor, porConfirmar.codigo);
+    setGuardando(false);
+
+    if (!guardado) return; // saltó una anomalía: el padre cierra y la resuelve
+    setCapturados((c) => [
+      { nombre: porConfirmar.articulo.nombre.trim(), cantidad: valor },
+      ...c,
+    ]);
+    // Vuelve a escanear sin cerrar la cámara.
+    setPorConfirmar(null);
+    setCantidad('');
+    setUltimo(null);
+  }
+
   /**
    * El catálogo se guarda en referencias para que el efecto de la cámara NO
    * dependa de ellas. `articulos` y `onArticulo` llegan como valores nuevos en
@@ -167,12 +202,10 @@ export function EscanerCodigo({
       }
       if (navigator.vibrate) navigator.vibrate(60);
 
-      if (auto.current) {
-        // Modo automático: se toma directo, sin pedir confirmación.
-        alElegir.current(articulo, valor);
-        return;
-      }
+      // En modo automático la cámara NO se cierra: se pide solo la cantidad
+      // y se vuelve a escanear. En modo normal se pide confirmar el artículo.
       setPorConfirmar({ articulo, codigo: valor });
+      if (auto.current) setCantidad('');
     };
 
     (async () => {
@@ -312,6 +345,18 @@ export function EscanerCodigo({
         >
           ✕
         </button>
+
+        {/* Avance de la sesión de escaneo, sin tener que salir a mirar. */}
+        {capturados.length > 0 && (
+          <div className="absolute left-4 top-4 max-w-[60%] rounded-xl bg-black/70 px-3 py-2 backdrop-blur">
+            <p className="text-xs font-medium text-acento">
+              {capturados.length} capturado{capturados.length === 1 ? '' : 's'}
+            </p>
+            <p className="truncate text-xs text-white/80">
+              último: {capturados[0].nombre} · {capturados[0].cantidad.toLocaleString('es-CO')}
+            </p>
+          </div>
+        )}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div
             className={`h-56 w-56 rounded-2xl border-4 ${
@@ -339,26 +384,92 @@ export function EscanerCodigo({
             {porConfirmar.articulo.familia ? ` · ${porConfirmar.articulo.familia.toLowerCase()}` : ''}
           </p>
 
-          <div className="grid gap-2">
-            <button
-              onClick={() => onArticulo(porConfirmar.articulo, porConfirmar.codigo)}
-              className="toque rounded-xl bg-acento text-base font-semibold text-black"
-            >
-              Sí, contar este
-            </button>
-            <button
-              onClick={() => {
-                setPorConfirmar(null);
-                setUltimo(null);
-              }}
-              className="toque rounded-xl border border-borde text-base"
-            >
-              No es · escanear otro
-            </button>
-            <button onClick={onCerrar} className="py-2 text-sm text-tenue">
-              Salir del escáner
-            </button>
-          </div>
+          {automatico && onCapturaRapida ? (
+            // ── Modo automático: se teclea la cantidad aquí mismo y se
+            //    sigue escaneando. La cámara nunca se cierra.
+            <>
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-sm text-tenue">¿Cuántos?</span>
+                <span className="text-3xl font-bold tabular-nums text-acento">
+                  {cantidad || '0'}
+                </span>
+              </div>
+              <div className="mb-2 grid grid-cols-4 gap-2">
+                {['7', '8', '9', '4', '5', '6', '1', '2', '3'].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setCantidad(cantidad + d)}
+                    className="tecla"
+                    style={{ minHeight: 52 }}
+                  >
+                    {d}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCantidad(cantidad.slice(0, -1))}
+                  className="tecla text-tenue"
+                  style={{ minHeight: 52 }}
+                >
+                  ⌫
+                </button>
+                <button
+                  onClick={() => setCantidad(cantidad + '0')}
+                  className="tecla"
+                  style={{ minHeight: 52 }}
+                >
+                  0
+                </button>
+                <button
+                  onClick={() =>
+                    setCantidad(cantidad.includes(',') ? cantidad : (cantidad || '0') + ',')
+                  }
+                  className="tecla text-tenue"
+                  style={{ minHeight: 52 }}
+                >
+                  ,
+                </button>
+                <button
+                  onClick={guardarYSeguir}
+                  disabled={cantidad === '' || guardando}
+                  className="col-span-2 rounded-xl bg-acento text-base font-semibold text-black disabled:opacity-40"
+                  style={{ minHeight: 52 }}
+                >
+                  {guardando ? '…' : 'Guardar y seguir'}
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  setPorConfirmar(null);
+                  setCantidad('');
+                  setUltimo(null);
+                }}
+                className="w-full py-2 text-sm text-tenue"
+              >
+                Omitir · escanear otro
+              </button>
+            </>
+          ) : (
+            <div className="grid gap-2">
+              <button
+                onClick={() => onArticulo(porConfirmar.articulo, porConfirmar.codigo)}
+                className="toque rounded-xl bg-acento text-base font-semibold text-black"
+              >
+                Sí, contar este
+              </button>
+              <button
+                onClick={() => {
+                  setPorConfirmar(null);
+                  setUltimo(null);
+                }}
+                className="toque rounded-xl border border-borde text-base"
+              >
+                No es · escanear otro
+              </button>
+              <button onClick={onCerrar} className="py-2 text-sm text-tenue">
+                Salir del escáner
+              </button>
+            </div>
+          )}
         </div>
       )}
 

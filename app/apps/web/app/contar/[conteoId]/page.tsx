@@ -728,6 +728,62 @@ export default function Contar() {
             // una etiqueta de estante está mal pegada, se ve en el reporte.
             setTextoCrudo(codigo);
           }}
+          /**
+           * Modo automático: guarda sin cerrar la cámara, para poder recorrer
+           * un estante encadenando lecturas.
+           *
+           * Pasa por las MISMAS reglas de anomalía que el resto: si algo salta,
+           * devuelve false, se cierra la cámara y el diálogo se resuelve en la
+           * pantalla de conteo. Saltarse la verificación por ir rápido sería
+           * exactamente el error que este producto elimina.
+           */
+          onCapturaRapida={async (a, valor, codigo) => {
+            if (!usuario) return false;
+
+            const yaContadoPor = capturas.find(
+              (c) => c.articuloId === a.id && c.usuarioNombre !== usuario.nombre,
+            );
+            const detectadas = evaluarAnomalias({
+              cantidad: valor,
+              unidadCapturada: a.unidad as Unidad,
+              unidadCatalogo: a.unidad as Unidad,
+              nombreArticulo: a.nombre.trim(),
+              exp10: a.exp10,
+              yaContadoPor: yaContadoPor?.usuarioNombre ?? null,
+            });
+
+            if (detectadas.length > 0) {
+              setEscaneando(false);
+              setMetodo('CAMARA');
+              setTextoCrudo(codigo);
+              elegirArticulo(a);
+              setCantidad(String(valor).replace('.', ','));
+              setAnomalias(detectadas);
+              setMotivo(null);
+              return false;
+            }
+
+            await capturar({
+              clientId: crypto.randomUUID(),
+              conteoId,
+              articuloId: a.id,
+              articuloNombre: a.nombre.trim(),
+              cantidad: valor,
+              unidad: a.unidad as Unidad,
+              metodo: 'CAMARA',
+              textoCrudo: codigo,
+              anomalias: [],
+              capturadoEn: new Date().toISOString(),
+              usuarioNombre: usuario.nombre,
+              sincronizada: false,
+            });
+            setUltimoContado({
+              nombre: a.nombre.trim(),
+              cantidad: valor,
+              unidad: a.unidad as Unidad,
+            });
+            return true;
+          }}
         />
       )}
 
