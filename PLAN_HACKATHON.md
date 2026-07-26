@@ -29,7 +29,8 @@
 | **Conflicto entre contadores** (item sin cantidad hasta que el líder decide) | ✅ | R7 + `yaContadoPor` |
 | **Retomar conteo en otra tablet** sin romper el ciego | ✅ | — |
 | **Tests** 61 unitarios + E2E Playwright contra backend real | ✅ | `pnpm test` / Playwright |
-| **Deploy en Vercel** + datos demo + roles por PIN | ✅ | Ana `1111` / Bibiana (líder) `9999` |
+| **Deploy** web→Vercel + API→Render + datos demo + roles por PIN | ✅ | Ana `1111` / Bibiana (líder) `9999` |
+| **CI/CD auto-deploy** (cada push a `main` publica ambas partes juntas) | ✅ | `.github/workflows/desplegar.yml` + `app/desplegar.sh` |
 | **Guion pitch 2 min** minutado + **guion Q&A jurado** | ✅ | `docs/` |
 
 **Reglas de anomalía (códigos reales en `main`):**
@@ -168,7 +169,9 @@ Flag en `db.meta` (`onboarded`) para mostrarlo solo la primera vez.
 
 ## 5. Entregables
 
-1. ✅ **App en producción**: https://conteo-inventarios.vercel.app (offline-capable)
+1. ✅ **App en producción**: https://conteo-inventarios.vercel.app (web) +
+   API en Render — **deploy automatizado** en cada push a `main` (las dos partes salen
+   juntas; ya no puede quedar la web nueva contra la API vieja)
 2. ⬜ **Demo 2 min grabado** (MP4) + link live — grabar 5–6 takes, backup en Drive
 3. ✅ **README** orientado al jurado (arquitectura, decisiones, cómo correr)
 4. ✅ **Guion pitch minutado** + **guion Q&A jurado** (en `docs/`)
@@ -222,7 +225,8 @@ cd app && pnpm dev:api      # Fastify API (3001)
 cd app && pnpm build        # compila todo
 cd app && pnpm test         # tests (core + api)
 cd app && pnpm lint         # ESLint + Prettier
-vercel --prod               # deploy
+git push origin main        # deploy: CI publica web (Vercel) + API (Render)
+cd app && ./desplegar.sh    # deploy manual de ambas partes (fallback)
 ```
 
 ---

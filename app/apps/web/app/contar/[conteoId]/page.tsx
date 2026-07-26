@@ -39,6 +39,7 @@ import {
   type TipoCaptura,
 } from '@/lib/db';
 import { prepararFoto, MOTIVOS_MERMA, type FotoPreparada } from '@/lib/foto';
+import { rangoHabitual } from '@/lib/rangoHabitual';
 import {
   capturar,
   arrancarSincronizacion,
@@ -1178,6 +1179,7 @@ function DialogoAnomalias({
 }) {
   const hayBloqueo = bloquea(anomalias);
   const principal = anomalias[0];
+  const [porQue, setPorQue] = useState(false);
   const correcciones = anomalias.flatMap(
     (a) => a.opciones?.filter((o) => o.accion === 'CORREGIR_A') ?? [],
   );
@@ -1187,6 +1189,22 @@ function DialogoAnomalias({
       <div className="w-full max-w-md rounded-2xl border border-alerta/60 bg-superficie p-5">
         <p className="mb-1 text-sm font-semibold text-alerta">⚠ {principal.titulo}</p>
         <p className="mb-4 text-sm text-tenue">{principal.mensaje}</p>
+
+        {principal.codigo === 'R8_SALTO_DE_MAGNITUD' && articulo.exp10 != null && (
+          <div className="mb-4">
+            <button
+              onClick={() => setPorQue((v) => !v)}
+              className="text-xs text-tenue underline underline-offset-2"
+            >
+              ¿Por qué?
+            </button>
+            {porQue && (
+              <p className="mt-1 text-xs text-tenue">
+                En esta bodega suele estar {rangoHabitual(articulo.exp10)}.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="mb-4 rounded-xl bg-superficie-alta p-4">
           <p className="text-sm text-tenue">{articulo.nombre.trim()}</p>
