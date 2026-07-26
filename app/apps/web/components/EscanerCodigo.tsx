@@ -25,8 +25,62 @@ import type { ArticuloLocal } from '@/lib/db';
 /** Prefijo de las etiquetas QR que genera la app: `PSL:<articuloId>`. */
 const PREFIJO_QR = 'PSL:';
 
+interface CodigoDetectado {
+  rawValue: string;
+  /** Rectángulo del código dentro del fotograma, en píxeles del video. */
+  boundingBox?: { x: number; y: number; width: number; height: number };
+}
+
 interface DetectorCodigos {
-  detect(fuente: CanvasImageSource): Promise<{ rawValue: string }[]>;
+  detect(fuente: CanvasImageSource): Promise<CodigoDetectado[]>;
+}
+
+/** Lado del recuadro de puntería, en píxeles de pantalla. Debe coincidir con el CSS. */
+const LADO_RECUADRO = 224;
+
+/**
+ * ¿El código cayó DENTRO del recuadro?
+ *
+ * Sin esto, `detect()` devuelve todos los códigos del fotograma y se tomaba el
+ * primero — que suele ser el de más arriba, no al que apuntas. En un estante
+ * con varias etiquetas juntas eso significa contar el artículo equivocado.
+ *
+ * El video se pinta con `object-cover`, así que hay que rehacer esa
+ * transformación para pasar de coordenadas del video a coordenadas de pantalla.
+ */
+function dentroDelRecuadro(
+  caja: { x: number; y: number; width: number; height: number } | undefined,
+  video: HTMLVideoElement,
+): boolean {
+  // Sin caja no se puede filtrar: se acepta, es mejor que no leer nada.
+  if (!caja) return true;
+
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  const cw = video.clientWidth;
+  const ch = video.clientHeight;
+  if (!vw || !vh || !cw || !ch) return true;
+
+  // `object-cover`: se escala al mayor de los dos factores y se recorta.
+  const escala = Math.max(cw / vw, ch / vh);
+  const desplazamientoX = (cw - vw * escala) / 2;
+  const desplazamientoY = (ch - vh * escala) / 2;
+
+  const centroX = (caja.x + caja.width / 2) * escala + desplazamientoX;
+  const centroY = (caja.y + caja.height / 2) * escala + desplazamientoY;
+
+  const lado = Math.min(LADO_RECUADRO, cw, ch);
+  const izquierda = (cw - lado) / 2;
+  const arriba = (ch - lado) / 2;
+
+  // Un poco de holgura: apuntar con el pulso no es exacto.
+  const holgura = lado * 0.15;
+  return (
+    centroX >= izquierda - holgura &&
+    centroX <= izquierda + lado + holgura &&
+    centroY >= arriba - holgura &&
+    centroY <= arriba + lado + holgura
+  );
 }
 
 export function EscanerCodigo({
@@ -60,6 +114,27 @@ export function EscanerCodigo({
   const [usandoRespaldo, setUsandoRespaldo] = useState(false);
 
   /**
+   * Modo automático: al reconocer un código lo toma sin pedir confirmación.
+   *
+   * Sirve para recorrer un estante escaneando uno tras otro. Va apagado por
+   * defecto porque un escaneo equivocado entra sin que nadie lo vea, que es
+   * justo lo que este producto existe para evitar — pero con las etiquetas de
+   * estante bien puestas el riesgo baja mucho y la velocidad importa.
+   *
+   * La preferencia se recuerda entre sesiones.
+   */
+  const [automatico, setAutomatico] = useState(false);
+  useEffect(() => {
+    setAutomatico(localStorage.getItem('escaneoAutomatico') === '1');
+  }, []);
+  function cambiarAutomatico(valor: boolean) {
+    setAutomatico(valor);
+    localStorage.setItem('escaneoAutomatico', valor ? '1' : '0');
+  }
+  const auto = useRef(false);
+  auto.current = automatico;
+
+  /**
    * El catálogo se guarda en referencias para que el efecto de la cámara NO
    * dependa de ellas. `articulos` y `onArticulo` llegan como valores nuevos en
    * cada render del padre; si el efecto dependiera de ellos, la cámara se
@@ -67,6 +142,10 @@ export function EscanerCodigo({
    */
   const datos = useRef({ codigos, articulos });
   datos.current = { codigos, articulos };
+
+  /** Igual con el callback: llega nuevo en cada render del padre. */
+  const alElegir = useRef(onArticulo);
+  alElegir.current = onArticulo;
 
   /** Se detiene la búsqueda mientras hay algo esperando validación. */
   const pausado = useRef(false);
@@ -82,12 +161,18 @@ export function EscanerCodigo({
     const alLeer = (valor: string) => {
       if (cancelado || pausado.current) return;
       const articulo = resolver(valor, datos.current.codigos, datos.current.articulos);
-      if (articulo) {
-        if (navigator.vibrate) navigator.vibrate(60);
-        setPorConfirmar({ articulo, codigo: valor });
-      } else {
+      if (!articulo) {
         setUltimo(valor);
+        return;
       }
+      if (navigator.vibrate) navigator.vibrate(60);
+
+      if (auto.current) {
+        // Modo automático: se toma directo, sin pedir confirmación.
+        alElegir.current(articulo, valor);
+        return;
+      }
+      setPorConfirmar({ articulo, codigo: valor });
     };
 
     (async () => {
@@ -150,7 +235,11 @@ export function EscanerCodigo({
         }
         try {
           const hallados = await detector.detect(video.current);
-          for (const h of hallados) {
+          // Solo los que caen en el recuadro: en un estante con varias
+          // etiquetas juntas, tomar el primero de la lista significa contar
+          // el artículo de al lado.
+          const enMira = hallados.filter((h) => dentroDelRecuadro(h.boundingBox, video.current!));
+          for (const h of enMira) {
             alLeer(h.rawValue);
             if (resolver(h.rawValue, datos.current.codigos, datos.current.articulos)) return;
           }
@@ -180,16 +269,36 @@ export function EscanerCodigo({
     <div className="alto-pantalla fixed inset-0 z-50 flex flex-col bg-black">
       <div className="flex shrink-0 items-center justify-between gap-3 px-4 py-3">
         <p className="min-w-0 text-sm text-tenue">
-          Apunta al código o al QR del estante
-          {usandoRespaldo && <span className="block text-xs">lector compatible · puede tardar un poco más</span>}
+          Apunta al código dentro del recuadro
+          {usandoRespaldo && (
+            <span className="block text-xs">lector compatible · puede tardar un poco más</span>
+          )}
         </p>
         <button
           onClick={onCerrar}
           className="toque shrink-0 rounded-xl border border-borde px-5 text-sm font-medium"
         >
-          Cancelar
+          Salir
         </button>
       </div>
+
+      {/* Modo automático: escanear uno tras otro sin confirmar cada uno. */}
+      <label className="flex shrink-0 items-center justify-between gap-3 border-b border-borde/50 px-4 pb-3">
+        <span className="text-sm">
+          Escaneo automático
+          <span className="block text-xs text-tenue">
+            {automatico
+              ? 'toma el artículo sin preguntar — más rápido, sin red de seguridad'
+              : 'pide confirmar cada código antes de contarlo'}
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          checked={automatico}
+          onChange={(e) => cambiarAutomatico(e.target.checked)}
+          className="h-7 w-12 shrink-0 accent-acento"
+        />
+      </label>
 
       <div className="relative flex-1 overflow-hidden">
         <video ref={video} playsInline muted className="h-full w-full object-cover" />

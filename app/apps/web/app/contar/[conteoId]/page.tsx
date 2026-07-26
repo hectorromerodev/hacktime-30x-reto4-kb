@@ -427,9 +427,19 @@ export default function Contar() {
   return (
     <main className="alto-pantalla mx-auto flex max-w-2xl flex-col overflow-hidden">
       {/* ── Cabecera: progreso y estado de red ── */}
-      <header className="flex shrink-0 items-center justify-between border-b border-borde px-4 py-3">
-        <div className="min-w-0">
-          <button onClick={() => router.push('/')} className="truncate text-left">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-borde px-3 py-3">
+        {/* Salida explícita. Antes el nombre de la bodega era el único modo de
+            volver, y no se veía como un botón: tocaba usar el "atrás" del
+            navegador. */}
+        <button
+          onClick={() => router.push('/')}
+          aria-label="Salir de esta bodega"
+          className="toque flex shrink-0 items-center rounded-xl border border-borde px-3 text-lg"
+        >
+          ←
+        </button>
+        <div className="min-w-0 flex-1">
+          <button onClick={() => router.push('/')} className="w-full truncate text-left">
             <span className="block truncate font-medium">{bodega}</span>
             <span className="text-xs text-tenue">
               {contados}/{total} artículos · {usuario?.nombre}
